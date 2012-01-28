@@ -3486,6 +3486,9 @@ function setupUI()
 	$('#content').fadeOut('fast');
 	$('#schedulecontent').fadeOut('fast');
 	$('#locationcontent').fadeOut('fast');
+	$('#meanxyContent').fadeOut('fast');
+	$('#chartsContent').fadeOut('fast');
+	$('#manurelContent').fadeOut('fast');
 	//$('#importcontent').fadeOut('fast');
 	$('#padcontent').fadeOut('fast');
 	$('#settingscontent').fadeOut('fast');
@@ -3592,13 +3595,22 @@ function setupUI()
 		
 		$('#appfooter').fadeIn('fast');
 		
-		if( url == '#schedule/' ) {
+		if (url == '#meanxy/') {
+			$('#meanxyLink').addClass("selected");
+			$('#meanxyContent').fadeIn("fast");			
+		} else if (url == '#charts/') {
+			$('#chartsLink').addClass("selected");
+			$('#chartsContent').fadeIn("fast");			
+		} else if (url == '#manurel/') {
+			$('#manurelLink').addClass("selected");
+			$('#manurelContent').fadeIn("fast");
+		} else if (url == '#schedule/') {
 			$('#schedulelink').addClass("selected");
 			$('#schedulecontent').fadeIn('fast');
-
+			
+			// S1E: Code wrapped in object. Perhaps a form of temporarilly disabling or "commenting out"?
 			//$(document).ready(function() 
 			{
-			
 				$('#calendar').fullCalendar({
 					defaultView:'agendaWeek',
 					theme:true,
@@ -3730,18 +3742,31 @@ function setupUI()
 	$('#uiver').html(mmUI.uiver);
 }
 
-$(document).ready(function(){
+// app init
+mmUI.onLoad = function(event) {
 	mmUI.loadCookie();
 	//alert(cookie);
+	
+	// S1E: This forwards auth and config data to all iframes, should be extracted
+	$(".embeddable iframe").each(function (index, iframe) {
+		if (mmUI.apiurl) {
+			var apiurl = mmUI.apiurl.substr(7, mmUI.apiurl.length)
+			var port = ""
+			if (apiurl.indexOf(":") != -1) {
+				port = apiurl.substr(apiurl.indexOf(":") + 1, apiurl.length)
+				apiurl = apiurl.substr(0, apiurl.indexOf(":"))
+			}
+			iframe.src = iframe.getAttribute("data-src") + "?access_token=" + mmUI.access_token + "&user=" + mmUI.account + "&server=" + escape(apiurl) + "&port=" + escape(port)
+		}
+	})
 
-//*
 	$.editableFactory = {
 		'text': {
-			toEditable: function($this,options){
+			toEditable: function($this,options) {
 				//$this.append('<input value="'+$this.data('editable.current')+'"/> <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-				$this.append('<input value="'+$this.data('editable.current')+'" class="editableinput" onclick="javascript:return false;"/>').bind('keydown',function(event){
+				$this.append('<input value="'+$this.data('editable.current')+'" class="editableinput" onclick="javascript:return false;"/>').bind('keydown', function(event) {
 					var keyCode = $.ui.keyCode;
-					switch( event.keyCode ) {
+					switch(event.keyCode) {
 					case keyCode.TAB:
 					case keyCode.ENTER:
 					case keyCode.NUMPAD_ENTER:
