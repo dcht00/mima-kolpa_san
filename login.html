@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:ng="http://angularjs.org">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Opis za iskalnike">
+<title>MiddleMachine</title>
+<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" type="text/css" href="css/default.css">
+<!--[if lt IE 9]><link rel="stylesheet" href="css/ie.css" type="text/css"><script src="js/html5.js"></script><![endif]-->
+<script src="js/has.js"></script>
+
+<!-- <script type="text/javascript" src="angular-debug.js" ng:autobind></script> -->
+<script>
+
+function dump(arr,level) {
+var dumped_text = "";
+if(!level) level = 0;
+
+//The padding given at the beginning of the line.
+var level_padding = "";
+for(var j=0;j<level+1;j++) level_padding += "    ";
+
+if(typeof(arr) == 'object') { //Array/Hashes/Objects
+ for(var item in arr) {
+  var value = arr[item];
+ 
+  if(typeof(value) == 'object') { //If it is an array,
+   dumped_text += level_padding + "'" + item + "' ...\n";
+   dumped_text += dump(value,level+1);
+  } else {
+   dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+  }
+ }
+} else { //Stings/Chars/Numbers etc.
+ dumped_text = "===>"+arr+"<===("+typeof(arr)+")";
+}
+return dumped_text;
+} 
+
+function FetchCntl(){}
+FetchCntl.prototype = {
+  fetch: function(){
+    var self = this;
+    this.clear();
+    this.$xhr(this.method, this.url, function(code, response){
+      self.code = code;
+      self.response = response;
+    });
+  },
+  clear: function(){
+    this.code = null;
+    this.response = null;
+  }
+};
+</script>
+<style type="text/css">
+	#feedback { font-size: 1.4em; }
+	#selectable .ui-selecting { background: #FECA40; }
+	#selectable .ui-selected { background: #F39814; color: white; }
+	#selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+	#selectable li { margin: 3px; padding: 0.4em; font-size: 1.4em; height: 18px; }
+</style>
+
+</head>
+<body>
+<div id="test">
+</div>
+<header role="banner" id="navigation" style="display:none"> 
+	<h1 id="brand"> 
+		<a href="http://www.middlemachine.com/" rel="home"> 
+			<img src="images/middlemachine-logo.png" width="127" height="22" alt="MiddleMachine logo"> 
+			MiddleMachine
+		</a> 
+	</h1> 
+	<nav role="navigation"> 
+		<ul id="user"> 
+			<li id="author" class="vcard author">Hello, <strong class="fn n" id="usersname">Natan</strong></li> 
+			<li><a href="/">Account settings</a></li> 
+			<li><a href="/">Data import</a></li> 
+			<li><a href="javascript: mmUI.logout();">Sign out</a></li> 
+		</ul> 
+		<ul id="primary"> 
+			<li class="selected"><a href="/agenda/">Agenda</a></li> 
+			<li><a href="/schedule/"><span>12</span> Schedule</a></li> 
+			<li><a href="/locations/">Locations</a></li> 
+		</ul> 
+	</nav> 
+</header> 
+
+<div id="loginform" action="javascript: return false;" onsubmit="javascript:return mmUI.login($('#form_username').val(),$('#form_password').val());" style="display:none;padding:160px;">
+<form>
+			<ul>
+			<li>Username: <input type="text" id="form_username" name="username"></li>
+			<li>Password <input type="password" id="form_password" name="password"></li>
+<!-- 			<li><input type="button" name="login" onclick="javascript:submit()" value="login"></li> -->
+			<li><input type="button" name="login" onclick="javascript:mmUI.login($('#form_username').val(),$('#form_password').val());" value="login"></li>
+			<div id="loginmsg"></div>
+			<li>data server: <select id="server" name="server">
+			<option>http://194.249.198.75:8765
+			<option>http://10.14.136.187:8080
+			<option>http://192.168.11.5:8080
+			</select>
+			</li>
+			</ul>
+			
+</form>
+	 
+</div>
+<div id="content" style="display:none">
+	<div id="main" role="main">
+		<header class="labeled">
+			<h2 onclick="alert(document.cookie)">CREATE NEW &amp; SEARCH</h2>
+		</header>
+		<form id="awesome-bar" method="post" action="">
+			<fieldset>
+				<legend>Awesome bar</legend>
+				<input type="text" id="new-entry" name="new-entry" placeholder="New item subject, deadline, duration etc. @location #tag">
+				<input type="button" id="create" value="Create new" onclick="mmUI.addFuzz($('#new-entry').val());">
+			</fieldset>
+		</form>
+<!--		<form id="sort" method="post" action="">
+			<fieldset>
+				<legend>Sort</legend>
+				<ul>
+					<li>
+						<label for="sort-show">Show</label>
+						<select id="sort-show" name="sort-show">
+							<option value="1">Active</option>
+							<option value="2">Nekaj 02</option>
+							<option value="3">Nekaj 03</option>
+						</select>
+					</li>
+					<li>
+						<label for="sort-by">Sort by</label>
+						<select id="sort-by" name="sort-by">
+							<option value="1">Priority</option>
+							<option value="2">Nekaj 01</option>
+						</select>
+					</li>
+					<li>
+						<label for="group-by">Group by</label>
+						<select id="group-by" name="group-by">
+							<option value="1">None</option>
+							<option value="2">Nekaj 02</option>
+						</select>
+					</li>
+				</ul>
+			</fieldset>
+		</form>-->
+		<header class="labeled">
+			<h3>Things to plan</h3>
+		</header>
+		<section id="entries-01" class="entries">
+		</section>
+		<header class="labeled">
+			<h3>Things to work on</h3>
+		</header>
+		<section id="entries-02" class="entries">
+		</section>
+		<footer id="summary">
+			<small id="entryitemcount"><img src="images/wait.gif"></small>
+			<p>Not enough to do? <a href="javascript:mmUI.toggleUIParameter('entry_limit'); mmUI.updateEntries();">See your complete list.</a></p>
+		</footer>
+	</div>
+	<aside role="complementary">
+		<section id="aims">
+			<header class="labeled">
+				<h2>Your tags</h2>
+				<p>Priority</p>
+			</header>
+			<div id="aim_part">
+			<ul>
+			<li><img src="images/wait.gif"></li>
+			</ul>
+			</div>
+			<menu>
+				<li id="new-aim"><a href="/" class="editablenewaim">Create new aim</a></li>
+			</menu>
+		</section>
+		<footer id="aims">
+			<p> <a href="javascript:mmUI.toggleUIParameter('aim_limit'); mmUI.updateAims();">See your complete list.</a></p>
+		</footer>
+		
+	</aside>
+</div>
+
+<footer role="contentinfo">
+	<section>
+		<nav role="navigation">
+			<ul id="global">
+				<li><a href="/">Help</a></li>
+				<li><a href="/">Mobile applications</a></li>
+				<li><a href="/">Contact</a></li>
+				<li><a href="/">About</a></li>
+				<li><a href="/">Feedback</a></li>
+				<li><a href="/">Terms of use</a></li>
+				<li><a href="/">Privacy policy</a></li>
+			</ul>
+		</nav>
+		<small class="vcard">
+			&copy; 2010 <a href="http://www.middlemachine.com/" class="url fn org" rel="home">MiddleMachine</a>
+		</small>
+	</section>
+</footer>
+
+<script type="text/javascript">
+document.write(unescape('%3Cscript src="js/jquery.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/ui.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/ui-full.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/functions.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/mmui.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.jeditable.mini.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.md5.js"%3E%3C/script%3E'));
+</script>
+
+</body>
+
+</html>

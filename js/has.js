@@ -1,0 +1,1 @@
+function wait(loaded) {if (typeof(document.getElementsByTagName('body')[0]) == 'undefined') setTimeout('wait('+loaded+');',20);else loaded.call();}var onBodyTagLoad = function(){document.getElementsByTagName('body')[0].className+=' js';};wait(onBodyTagLoad);

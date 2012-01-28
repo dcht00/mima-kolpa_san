@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Opis za iskalnike">
+<title>middlemachine</title>
+<!-- <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon"> -->
+<link rel="stylesheet" type="text/css" href="css/default.css">
+<link rel='stylesheet' type='text/css' href='css/fullcalendar.css' />
+<link rel="shortcut icon" href="images/icons/mm.png">
+<!--[if lt IE 9]><link rel="stylesheet" href="css/ie.css" type="text/css"><script src="js/html5.js"></script><![endif]-->
+<script src="js/has.js"></script>
+
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<!-- <script type="text/javascript" src="angular-debug.js" ng:autobind></script> -->
+<script>
+
+function dump(arr,level) {
+	var dumped_text = "";
+	if(!level) level = 0;
+
+	//The padding given at the beginning of the line.
+	var level_padding = "";
+	for(var j=0;j<level+1;j++) level_padding += "    ";
+	if(typeof(arr) == 'object') { //Array/Hashes/Objects
+		for(var item in arr) {
+			var value = arr[item];
+			if(typeof(value) == 'object') { //If it is an array,
+				dumped_text += level_padding + "'" + item + "' ...\n";
+				dumped_text += dump(value,level+1);
+				} else {
+					dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+					}
+			}
+		} else { //Stings/Chars/Numbers etc.
+			dumped_text = "===>"+arr+"<===("+typeof(arr)+")";
+		}
+return dumped_text;
+} 
+
+function FetchCntl(){}
+FetchCntl.prototype = {
+	fetch: function(){
+	var self = this;
+	this.clear();
+	this.$xhr(this.method, this.url, function(code, response){
+		self.code = code;
+		self.response = response;
+		});
+	},
+	clear: function(){
+	this.code = null;
+	this.response = null;
+	}
+};
+</script>
+<style type="text/css">
+	#definepoint {
+		font-size:14px;
+		font-weight: bold;
+	}
+	a {
+		cursor: pointer;
+	}
+	#feedback { font-size: 1.4em; }
+	#selectable .ui-selecting { background: #FECA40; }
+	#selectable .ui-selected { background: #F39814; color: white; }
+	#selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+	#selectable li { margin: 3px; padding: 0.4em; font-size: 1.4em; height: 18px; }
+
+	article {
+		cursor: default;
+	}
+	section {
+		cursor: default;
+	}
+	.editable :hover {
+		cursor: text;
+	}
+	.editableparam {
+		cursor: text;
+	}
+	.editableparam:hover {
+		background-color: #FFFFE5;
+		cursor:pointer;
+	}
+	
+	.editabletags {
+		width:100%;
+		height: 100%;
+	}
+	
+	.editabletags:hover {
+		background-color: #FFFFE5;
+		cursor:pointer;
+	}
+	
+	.editablelocation {
+		cursor: text;
+		text-decoration: none;
+	}
+	.editablelocation:hover {
+		background-color: #FFFFE5;
+	}
+	.editable {
+		border: 0px none;
+		box-shadow:000;
+		text-shadow:0 0 0em #000;
+		-moz-box-shadow:0 0 0em #000;
+		-webkit-box-shadow:0 0 0em #000;
+		width: 100%;
+	}
+	.editableinput {
+		background-color: inherit;
+		border: 0px none;
+		box-shadow:000;
+		text-shadow:0 0 0em #000;
+		-moz-box-shadow:0 0 0em #000;
+		-webkit-box-shadow:0 0 0em #000;
+		outline-width: 0px;
+		width: 100%;
+		-moz-user-select: all;
+		-khtml-user-select: all;
+		user-select: all;
+		margin:0;
+		padding:0;
+	}
+	.editableinput:hover {
+		background-color: #FFFFE5;
+	}
+	.editableinputadd {
+		background-color: inherit;
+		border: 0px none;
+		box-shadow:000;
+		text-shadow:0 0 0em #000;
+		-moz-box-shadow:0 0 0em #000;
+		-webkit-box-shadow:0 0 0em #000;
+		outline-width: 0px;
+		width: 100%;
+	}
+	.editableinputadd:focus {
+		background-color: #FFFFE5;
+	}
+	.editableinputtitle {
+		font-size: 16px; 
+		color: #4B5259;
+		background-color: inherit;
+		border: 0px none;
+		box-shadow:000;
+		text-shadow:0 0 0em #000;
+		-moz-box-shadow:0 0 0em #000;
+		-webkit-box-shadow:0 0 0em #000;
+		outline-width: 0px;
+		width: 100%;
+	}
+	.inplace_field {
+		font-size: 16px; 
+		color: #4B5259;
+		background-color: inherit;
+		border: 0px none;
+		box-shadow:000;
+		text-shadow:0 0 0em #000;
+		-moz-box-shadow:0 0 0em #000;
+		-webkit-box-shadow:0 0 0em #000;
+		outline-width: 0px;
+		width: 100%;
+	}
+	.editableinputtitle:hover {
+		background-color: #FFFFE5;
+		cursor:pointer;
+	}
+	.editableinputtitle:focus {
+		background-color: #FFFFE5;
+	}
+	.editableinputtitle input.text {
+		font-size: 16px; 
+		color: #4B5259;
+	}
+
+	.editableapplybutton{
+	background: url(../../../images/bgr/btn_apply.png) no-repeat;
+	width: 76px;
+	height: 26px;
+	display: block;
+	text-indent: -999em;
+	float:left;
+	border:none;
+	margin: 0.3em 0em;
+	}
+
+	.editablecancelbutton{
+	background: url(../../../images/bgr/btn_cancel.png) no-repeat;
+	width: 76px;
+	height: 26px;
+	display: block;
+	text-indent: -999em;
+	border:none;
+	margin: 0.3em 0em;
+	}
+	.editableapplybutton:hover{
+	background: url(../../../images/bgr/btn_apply_hover.png) no-repeat;
+	display: block;
+	}
+	.editablecancelbutton:hover{
+	background: url(../../../images/bgr/btn_cancel_hover.png) no-repeat;
+	display: block;
+	}
+	#map_canvas { height: 100%; margin-left:auto; margin-right:auto; }
+	#map_overlay {
+		float: left;
+		top: 85px;
+		background-color: white;
+		outline-width: 3px;
+		padding: 10px;
+		z-index:1000;
+		max-width: 200px;
+		user-select: none;
+		font-size: 14px;
+	}
+	#map_overlay div {
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+	#map_overlay a {
+		padding-top: 5px;
+		padding-bottom: 5px;
+		text-decoration: none;
+	}
+	#map_overlay div:hover {
+		cursor: pointer;
+		background-color: #ededed;
+	}
+	.standout-notes {
+		border-bottom: 1px solid #e6e6e6;
+		border-left: 1px solid #e6e6e6;
+		border-right: 1px solid #e6e6e6;
+		padding: 0em 1em 1em 1em;
+		clear: both;
+		cursor: text;
+		/*background-color:;*/
+	}
+	.standout-notes :hover {
+		background-color: #FFFFE5;
+	}
+	.locationinput {
+	/* 	cursor: text; */
+		width: 450px;
+		text-decoration: none;
+		border: 1px solid #aaaaaa;
+		margin-top: -40px;
+		padding-top: -40px;
+}
+	.msgbutton {
+		padding-top:10px;
+	}
+</style>
+
+
+
+</head>
+<body>
+<div id="test" style="position:fixed">
+<form id="justsubmit" method="get">
+<input type="hidden" name="reload">
+<span id="printf"></span>
+</form>
+</div>
+<noscript>
+<h1>middlemachine.com Requires a Javascript enabled browser.</h1>
+</noscript>
+<header role="banner" id="navigation" style="display:none"> 
+	<h1 id="brand"> 
+		<a href="index.html" title="home" rel="home">
+			<img src="images/mm_logo.png" alt="middlemachine logo">
+			<!-- EX##dr <img src="images/middlemachine-logo.png" width="127" alt="MiddleMachine logo"> -->
+		</a>
+	</h1>
+	<h1 id="brand_text">
+	middlemachine
+	</h1>
+	<nav role="navigation"> 
+		<ul id="user"> 
+			<li id="author" class="vcard author">Hello, <strong class="fn n" id="usersname"></strong></li> 
+			<li><a href="#settings/">Settings</a></li> 
+			<!-- <li><a href="#import/">Data import</a></li> -->
+			<li><a href="#logout/">Sign out</a></li>
+<!--			<li><a href="#logout/" onclick="javascript: mmUI.logout();">Sign out</a></li>-->
+		</ul>
+		<ul id="primary"> 
+			<li class="selected" id="agendalink"><a href="#agenda/">Agenda</a></li> 
+			<li id="schedulelink"><a href="#schedule/"><span>12</span>Schedule</a></li>
+			<li id="padlink"><a href="#pad/"><span></span>Pad</a></li> 
+			<li id="locationlink"><a href="#locations/">Locations</a></li> 
+		</ul> 
+	</nav> 
+</header> 
+
+<div id="loginform" style="display:none;">
+
+<header role="banner" id="navigationlogin"> 
+<!-- OLD
+	<h1 id="brand"> 
+		<a href="http://www.middlemachine.com/"> 
+			<img src="images/middlemachine-logo.png" width="127" height="22" alt="MiddleMachine logo"> 
+			MiddleMachine
+		</a> 
+		 <span id="uiver">ui loading...</span>
+	</h1>
+ -->
+ <!-- NEW -->		
+ 	<h1 id="brand"> 
+		<a href="index.html" rel="home">
+			<img src="images/mm_logo.png" alt="middlemachine logo">
+			<!-- EX##dr <img src="images/middlemachine-logo.png" width="127" alt="MiddleMachine logo"> -->
+		</a>
+	</h1>
+	<h1 id="brand_text">
+	middlemachine
+	<br />
+	<span id="uiver">ui loading...</span>
+	</h1>
+</header> 
+<form id="loginfrm" name="loginfrm" action="javascript: return false;" onsubmit="javascript:return mmUI.login($('#form_username').val(),$('#form_password').val());" style="padding:45px;" autocomplete="on">
+			<ul>
+			<li><h2><span onclick="javascript: $('#form_username').val('dev@middlemachine.com'); $('#form_password').val('dev'); $('#loginservers').fadeIn('fast');">User</span><span onclick="javascript: $('#form_username').val('abcdef'); $('#form_password').val('abcdef'); $('#loginservers').fadeIn('fast');">name</span></h2></li>
+			<li><input type="text" id="form_username" name="form_username" autocomplete="on"></li>
+			<li><h2><span onclick="javascript: $('#form_username').val('slavko@middlemachine.com'); $('#form_password').val('glam');">Pass</span><span onclick="javascript: $('#form_username').val('sparklehorse@middlemachine.com'); $('#form_password').val('dodo'); $('#server').val('http://localhost:8080')">word</span></h2> </li>
+			<li><input type="password" id="form_password" name="form_password" autocomplete="on" s></li>
+			<li><input type="submit" name="login" value="login" style="padding:8px; margin:7px; font-size:16px; font-weight:bold; width:120px"></li>
+			</ul>
+			<div id="loginmsg" style="font-size:15px;"></div>
+			<ul id="loginservers" style="display:none">
+			<li>data server:</li>
+			<li> <select id="serversel" name="serversel" onchange="javascript:$('#server').val($('#serversel :selected').text());">
+			<option>http://193.9.21.195:8999
+			<option>http://194.249.198.75:8765
+			<option>http://localhost:8080
+			<option>http://peek.middlemachine.com:8080
+			<option>/server/?query=
+			<option>http://10.14.136.187:8080
+			<option>http://10.14.136.141:8080
+			<option>http://192.168.11.5:8080
+			<option>http://192.168.10.126:8080
+			</select>
+			</li>
+			<input type="text" id="server" name="server" value="http://193.9.21.195:8999">
+			</ul>
+</form>
+</div>
+
+<div id="padcontent" style="display:none">
+	<div id="padcontainer">
+		<h1>This Is A Pad For Your Ideas, Use It Wisely</h1>
+		<div>
+			<input type="button" value="save" onclick="javascript:mmUI.savePad()">
+		</div>
+		<div id="padeditor">
+		</div>
+		 
+		<!-- 
+		<div id="padcontainer">
+		<h1>This Is A Pad For Your Ideas, Use It Wisely</h1>
+		<div>
+			<input type="button" value="save" onclick="javascript:mmUI.savePad()">
+		</div>
+		<textarea id="pad"></textarea>
+		
+		
+		-->
+	</div>
+</div>
+
+<div id="content" style="display:none">
+	<div id="main" role="main">
+		<header class="labeled">
+			<h2>CREATE NEW &amp; SEARCH</h2>
+			<!--EX <h2 onclick="alert(document.cookie+' '+document.domain)">CREATE NEW &amp; SEARCH</h2> -->
+		</header>
+		<form id="awesome-bar" action="javascript: return false;" onsubmit="javascript:mmUI.addFuzz($('#new-entry').val()); return false;">
+			<fieldset>
+				<legend>Awesome bar</legend>
+				<input type="text" id="new-entry" name="new-entry" placeholder="New item subject, deadline, duration etc. @location #tag">
+				<input type="submit" id="create" value="Create new">
+			</fieldset>
+		</form>
+		<div id="filteredby">		
+		</div>
+		<div id="currentrequests" style="position: absolute; top:200px; text-align:center; width:500px; font-size:11px;">
+			<div id="loadingmsg" style="display:none" class="msgbutton">loading <img src="images/wait.gif"></div>
+			<div id="savingmsg" style="display:none" class="msgbutton">saving <img src="images/wait.gif"></div>
+		</div>
+
+<!--		<form id="sort" method="post" action="">
+			<fieldset>
+				<legend>Sort</legend>
+				<ul>
+					<li>
+						<label for="sort-show">Show</label>
+						<select id="sort-show" name="sort-show">
+							<option value="1">Active</option>
+							<option value="2">Nekaj 02</option>
+							<option value="3">Nekaj 03</option>
+						</select>
+					</li>
+					<li>
+						<label for="sort-by">Sort by</label>
+						<select id="sort-by" name="sort-by">
+							<option value="1">Priority</option>
+							<option value="2">Nekaj 01</option>
+						</select>
+					</li>
+					<li>
+						<label for="group-by">Group by</label>
+						<select id="group-by" name="group-by">
+							<option value="1">None</option>
+							<option value="2">Nekaj 02</option>
+						</select>
+					</li>
+				</ul>
+			</fieldset>
+		</form>-->
+		<section id="entries-01" class="entries">
+		</section>
+		<section id="entries-02" class="entries">
+		</section>
+		<section id="entries-03" class="entries">
+		</section>
+		<footer id="summary">
+			<small id="entryitemcount"><img src="images/wait.gif"></small>
+			<p id="show-entries">Not enough to do? <a href="javascript:mmUI.toggleLimit('entry');">See your complete list.</a></p>
+		</footer>
+	</div>
+	<aside role="complementary" class="noselect">
+		<section id="aims">
+			<header class="labeled">
+				<h2>You're near</h2>
+			</header>
+			<div id="places_part">
+			<ul>
+			<li><img src="images/wait.gif"></li>
+			</ul>
+			</div>
+		</section>
+<p>&nbsp;</p>
+		<section id="aims">
+			<header class="labeled">
+				<h2>Your aims</h2>
+				<p>Priority</p>
+			</header>
+			<div id="aim_part">
+			<ul>
+			<li><img src="images/wait.gif"></li>
+			</ul>
+			</div>
+			<menu>
+				<li id="new-aim"><input type="text" placeholder="Create new aim" class="editablenewaim"></li>
+				<li id="show-aims"><a href="javascript:mmUI.toggleLimit('aim');">Show all aims</a></li> 
+			</menu> 
+		</section>
+<p>&nbsp;</p>
+		<section id="aims">
+			<header class="labeled">
+				<h2>Your Contacts</h2>
+			</header>
+			<div id="contacts_part">
+			<ul>
+			<li><img src="images/wait.gif"></li>
+			</ul>
+			</div>
+			<menu>
+				<li id="show-contacts" class="show-lessmore"><a href="javascript:mmUI.toggleLimit('contact');">Show all contacts</a></li> 
+			</menu> 
+		</section>
+	</aside>
+</div>
+
+<div id="schedulecontent" style="display:none">
+	<div id="main" role="main">
+		<header class="labeled">
+			<h2 onclick="alert(document.cookie)">ORGANIZE &amp; CREATE NEW ITEMS</h2>
+		</header>
+		<form id="awesome-bar" action="javascript: return false;" onsubmit="javascript:mmUI.addFuzz($('#new-entry').val());">
+			<fieldset>
+				<legend>Awesome bar</legend>
+				<input type="text" id="new-entry" name="new-entry" placeholder="New item subject, deadline, duration etc. @location #tag">
+				<input type="submit" id="create" value="Create new">
+			</fieldset>
+		</form>
+	</div>
+	<div id="calendar">
+	</div>
+	<aside role="complementary">
+		<section id="aims">
+		</section>
+	</aside>
+</div>
+
+<div id="locationcontent" style="display:none">
+<!--	<div id="center-main">
+	<div id="main" role="main">
+		<header class="labeled">
+			<h2 onclick="alert(document.cookie)">REVERSE GEOLOCATION &amp; LOCATION SETUP</h2>
+		</header>
+		<form id="awesome-bar" action="javascript: return false;" onsubmit="javascript:mmUI.addFuzz($('#new-entry').val());">
+			<fieldset>
+				<legend>Awesome bar</legend>
+				<input type="text" id="new-entry" name="new-entry" placeholder="Enter Addres to find on map">
+				<input type="submit" id="create" value="Create new">
+			</fieldset>
+		</form>
+	</div>
+	</div><br>-->
+	<div id="map_overlay">
+	</div>
+	<div id="definepoint"></div>
+	<form action="javascript: return false;" onsubmit="mmUI.geoResolveAddress(); return false;">
+	<input type="text" id="geocode" name="geocode" placeholder="Enter Address to find on map" class="locationinput">
+	<input type="submit" value="find address">
+	</form>
+	<div id="map_canvas" style="width:85%; left: 220px; position:absolute; height:80% ">&nbsp;</div>
+</div>
+
+<div id="settingscontent" style="display:none" class="contentclass">
+	<div id="main" role="main"> 
+        <div class="data-import-title"> 
+		<h1>Account settings</h1> 
+        </div> 
+        <div id="mainsettingtabs" class="mainsettingtabs">
+		<ul class="settings-tabs-navi">
+			<li class="main-tabs main-tabs-active"><a href="#account-settings">Account</a></li>
+			<li class="main-tabs"><a href="#reminders-settings">Reminders</a></li>
+			<li class="main-tabs"><a href="#services-settings">Services</a></li>
+			<li class="main-tabs"><a href="#entities-settings">Entities</a></li>
+			<li class="main-tabs"><a href="#sharing-settings">Sharing</a></li>
+			<li class="main-tabs"><a href="#dataimport-settings">Data import</a></li>
+			<!-- 
+			<li class="main-tabs"><a href="#fuzztle-settings">Fuzztle</a></li>
+			<li class="main-tabs"><a href="#workflow-settings">Workflow</a></li>
+			 -->
+		</ul>
+			<div id="account-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Personal information</h2>
+				</div>
+				<ul class="settings-content">
+					<li>
+						<div class="settings-description">Full name</div>
+						<div class="settings-value">
+							<input type="text" name="fullname" id="fullname" />
+						</div>
+					</li>		
+					<li>
+						<div class="settings-description">Primary e-Mail</div>
+						<div class="settings-value">
+							<input type="text" name="primaryemail" id="primaryemail" />
+						</div>
+					</li>
+					<!--
+					<li>
+						<div class="settings-description">Avatar</div>
+						<div class="settings-value">
+							<input type="text" name="avatar" id="avatar" />
+						</div>
+					</li>
+					-->
+					<li>
+					<div class="settings-description">Country</div>
+					<div class="settings-value">
+						<select name="country" id="country">
+							<option value="" selected="selected">Select a Country</option>
+							<option value="United States">United States</option>
+							<option value="United Kingdom">United Kingdom</option>
+							<option value="Afghanistan">Afghanistan</option>
+							<option value="Albania">Albania</option>
+							<option value="Algeria">Algeria</option>
+							<option value="American Samoa">American Samoa</option>
+							<option value="Andorra">Andorra</option>
+							<option value="Angola">Angola</option>
+							<option value="Anguilla">Anguilla</option>
+							<option value="Antarctica">Antarctica</option>
+							<option value="Antigua and Barbuda">Antigua and Barbuda</option>
+							<option value="Argentina">Argentina</option>
+							<option value="Armenia">Armenia</option>
+							<option value="Aruba">Aruba</option>
+							<option value="Australia">Australia</option>
+							<option value="Austria">Austria</option>
+							<option value="Azerbaijan">Azerbaijan</option>
+							<option value="Bahamas">Bahamas</option>
+							<option value="Bahrain">Bahrain</option>
+							<option value="Bangladesh">Bangladesh</option>
+							<option value="Barbados">Barbados</option>
+							<option value="Belarus">Belarus</option>
+							<option value="Belgium">Belgium</option>
+							<option value="Belize">Belize</option>
+							<option value="Benin">Benin</option>
+							<option value="Bermuda">Bermuda</option>
+							<option value="Bhutan">Bhutan</option>
+							<option value="Bolivia">Bolivia</option>
+							<option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
+							<option value="Botswana">Botswana</option>
+							<option value="Bouvet Island">Bouvet Island</option>
+							<option value="Brazil">Brazil</option>
+							<option value="British Indian Ocean Territory">British Indian Ocean Territory</option>
+							<option value="Brunei Darussalam">Brunei Darussalam</option>
+							<option value="Bulgaria">Bulgaria</option>
+							<option value="Burkina Faso">Burkina Faso</option>
+							<option value="Burundi">Burundi</option>
+							<option value="Cambodia">Cambodia</option>
+							<option value="Cameroon">Cameroon</option>
+							<option value="Canada">Canada</option>
+							<option value="Cape Verde">Cape Verde</option>
+							<option value="Cayman Islands">Cayman Islands</option>
+							<option value="Central African Republic">Central African Republic</option>
+							<option value="Chad">Chad</option>
+							<option value="Chile">Chile</option>
+							<option value="China">China</option>
+							<option value="Christmas Island">Christmas Island</option>
+							<option value="Cocos (Keeling) Islands">Cocos (Keeling) Islands</option>
+							<option value="Colombia">Colombia</option>
+							<option value="Comoros">Comoros</option>
+							<option value="Congo">Congo</option>
+							<option value="Congo, The Democratic Republic of The">Congo, The Democratic Republic of The</option>
+							<option value="Cook Islands">Cook Islands</option>
+							<option value="Costa Rica">Costa Rica</option>
+							<option value="Cote D'ivoire">Cote D'ivoire</option>
+							<option value="Croatia">Croatia</option>
+							<option value="Cuba">Cuba</option>
+							<option value="Cyprus">Cyprus</option>
+							<option value="Czech Republic">Czech Republic</option>
+							<option value="Denmark">Denmark</option>
+							<option value="Djibouti">Djibouti</option>
+							<option value="Dominica">Dominica</option>
+							<option value="Dominican Republic">Dominican Republic</option>
+							<option value="Ecuador">Ecuador</option>
+							<option value="Egypt">Egypt</option>
+							<option value="El Salvador">El Salvador</option>
+							<option value="Equatorial Guinea">Equatorial Guinea</option>
+							<option value="Eritrea">Eritrea</option>
+							<option value="Estonia">Estonia</option>
+							<option value="Ethiopia">Ethiopia</option>
+							<option value="Falkland Islands (Malvinas)">Falkland Islands (Malvinas)</option>
+							<option value="Faroe Islands">Faroe Islands</option>
+							<option value="Fiji">Fiji</option>
+							<option value="Finland">Finland</option>
+							<option value="France">France</option>
+							<option value="French Guiana">French Guiana</option>
+							<option value="French Polynesia">French Polynesia</option>
+							<option value="French Southern Territories">French Southern Territories</option>
+							<option value="Gabon">Gabon</option>
+							<option value="Gambia">Gambia</option>
+							<option value="Georgia">Georgia</option>
+							<option value="Germany">Germany</option>
+							<option value="Ghana">Ghana</option>
+							<option value="Gibraltar">Gibraltar</option>
+							<option value="Greece">Greece</option>
+							<option value="Greenland">Greenland</option>
+							<option value="Grenada">Grenada</option>
+							<option value="Guadeloupe">Guadeloupe</option>
+							<option value="Guam">Guam</option>
+							<option value="Guatemala">Guatemala</option>
+							<option value="Guinea">Guinea</option>
+							<option value="Guinea-bissau">Guinea-bissau</option>
+							<option value="Guyana">Guyana</option>
+							<option value="Haiti">Haiti</option>
+							<option value="Heard Island and Mcdonald Islands">Heard Island and Mcdonald Islands</option>
+							<option value="Holy See (Vatican City State)">Holy See (Vatican City State)</option>
+							<option value="Honduras">Honduras</option>
+							<option value="Hong Kong">Hong Kong</option>
+							<option value="Hungary">Hungary</option>
+							<option value="Iceland">Iceland</option>
+							<option value="India">India</option>
+							<option value="Indonesia">Indonesia</option>
+							<option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option>
+							<option value="Iraq">Iraq</option>
+							<option value="Ireland">Ireland</option>
+							<option value="Israel">Israel</option>
+							<option value="Italy">Italy</option>
+							<option value="Jamaica">Jamaica</option>
+							<option value="Japan">Japan</option>
+							<option value="Jordan">Jordan</option>
+							<option value="Kazakhstan">Kazakhstan</option>
+							<option value="Kenya">Kenya</option>
+							<option value="Kiribati">Kiribati</option>
+							<option value="Korea, Democratic People's Republic of">Korea, Democratic People's Republic of</option>
+							<option value="Korea, Republic of">Korea, Republic of</option>
+							<option value="Kuwait">Kuwait</option>
+							<option value="Kyrgyzstan">Kyrgyzstan</option>
+							<option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option>
+							<option value="Latvia">Latvia</option>
+							<option value="Lebanon">Lebanon</option>
+							<option value="Lesotho">Lesotho</option>
+							<option value="Liberia">Liberia</option>
+							<option value="Libyan Arab Jamahiriya">Libyan Arab Jamahiriya</option>
+							<option value="Liechtenstein">Liechtenstein</option>
+							<option value="Lithuania">Lithuania</option>
+							<option value="Luxembourg">Luxembourg</option>
+							<option value="Macao">Macao</option>
+							<option value="Macedonia, The Former Yugoslav Republic of">Macedonia, The Former Yugoslav Republic of</option>
+							<option value="Madagascar">Madagascar</option>
+							<option value="Malawi">Malawi</option>
+							<option value="Malaysia">Malaysia</option>
+							<option value="Maldives">Maldives</option>
+							<option value="Mali">Mali</option>
+							<option value="Malta">Malta</option>
+							<option value="Marshall Islands">Marshall Islands</option>
+							<option value="Martinique">Martinique</option>
+							<option value="Mauritania">Mauritania</option>
+							<option value="Mauritius">Mauritius</option>
+							<option value="Mayotte">Mayotte</option>
+							<option value="Mexico">Mexico</option>
+							<option value="Micronesia, Federated States of">Micronesia, Federated States of</option>
+							<option value="Moldova, Republic of">Moldova, Republic of</option>
+							<option value="Monaco">Monaco</option>
+							<option value="Mongolia">Mongolia</option>
+							<option value="Montserrat">Montserrat</option>
+							<option value="Morocco">Morocco</option>
+							<option value="Mozambique">Mozambique</option>
+							<option value="Myanmar">Myanmar</option>
+							<option value="Namibia">Namibia</option>
+							<option value="Nauru">Nauru</option>
+							<option value="Nepal">Nepal</option>
+							<option value="Netherlands">Netherlands</option>
+							<option value="Netherlands Antilles">Netherlands Antilles</option>
+							<option value="New Caledonia">New Caledonia</option>
+							<option value="New Zealand">New Zealand</option>
+							<option value="Nicaragua">Nicaragua</option>
+							<option value="Niger">Niger</option>
+							<option value="Nigeria">Nigeria</option>
+							<option value="Niue">Niue</option>
+							<option value="Norfolk Island">Norfolk Island</option>
+							<option value="Northern Mariana Islands">Northern Mariana Islands</option>
+							<option value="Norway">Norway</option>
+							<option value="Oman">Oman</option>
+							<option value="Pakistan">Pakistan</option>
+							<option value="Palau">Palau</option>
+							<option value="Palestinian Territory, Occupied">Palestinian Territory, Occupied</option>
+							<option value="Panama">Panama</option>
+							<option value="Papua New Guinea">Papua New Guinea</option>
+							<option value="Paraguay">Paraguay</option>
+							<option value="Peru">Peru</option>
+							<option value="Philippines">Philippines</option>
+							<option value="Pitcairn">Pitcairn</option>
+							<option value="Poland">Poland</option>
+							<option value="Portugal">Portugal</option>
+							<option value="Puerto Rico">Puerto Rico</option>
+							<option value="Qatar">Qatar</option>
+							<option value="Reunion">Reunion</option>
+							<option value="Romania">Romania</option>
+							<option value="Russian Federation">Russian Federation</option>
+							<option value="Rwanda">Rwanda</option>
+							<option value="Saint Helena">Saint Helena</option>
+							<option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option>
+							<option value="Saint Lucia">Saint Lucia</option>
+							<option value="Saint Pierre and Miquelon">Saint Pierre and Miquelon</option>
+							<option value="Saint Vincent and The Grenadines">Saint Vincent and The Grenadines</option>
+							<option value="Samoa">Samoa</option>
+							<option value="San Marino">San Marino</option>
+							<option value="Sao Tome and Principe">Sao Tome and Principe</option>
+							<option value="Saudi Arabia">Saudi Arabia</option>
+							<option value="Senegal">Senegal</option>
+							<option value="Serbia and Montenegro">Serbia and Montenegro</option>
+							<option value="Seychelles">Seychelles</option>
+							<option value="Sierra Leone">Sierra Leone</option>
+							<option value="Singapore">Singapore</option>
+							<option value="Slovakia">Slovakia</option>
+							<option value="Slovenia">Slovenia</option>
+							<option value="Solomon Islands">Solomon Islands</option>
+							<option value="Somalia">Somalia</option>
+							<option value="South Africa">South Africa</option>
+							<option value="South Georgia and The South Sandwich Islands">South Georgia and The South Sandwich Islands</option>
+							<option value="Spain">Spain</option>
+							<option value="Sri Lanka">Sri Lanka</option>
+							<option value="Sudan">Sudan</option>
+							<option value="Suriname">Suriname</option>
+							<option value="Svalbard and Jan Mayen">Svalbard and Jan Mayen</option>
+							<option value="Swaziland">Swaziland</option>
+							<option value="Sweden">Sweden</option>
+							<option value="Switzerland">Switzerland</option>
+							<option value="Syrian Arab Republic">Syrian Arab Republic</option>
+							<option value="Taiwan, Province of China">Taiwan, Province of China</option>
+							<option value="Tajikistan">Tajikistan</option>
+							<option value="Tanzania, United Republic of">Tanzania, United Republic of</option>
+							<option value="Thailand">Thailand</option>
+							<option value="Timor-leste">Timor-leste</option>
+							<option value="Togo">Togo</option>
+							<option value="Tokelau">Tokelau</option>
+							<option value="Tonga">Tonga</option>
+							<option value="Trinidad and Tobago">Trinidad and Tobago</option>
+							<option value="Tunisia">Tunisia</option>
+							<option value="Turkey">Turkey</option>
+							<option value="Turkmenistan">Turkmenistan</option>
+							<option value="Turks and Caicos Islands">Turks and Caicos Islands</option>
+							<option value="Tuvalu">Tuvalu</option>
+							<option value="Uganda">Uganda</option>
+							<option value="Ukraine">Ukraine</option>
+							<option value="United Arab Emirates">United Arab Emirates</option>
+							<option value="United Kingdom">United Kingdom</option>
+							<option value="United States">United States</option>
+							<option value="United States Minor Outlying Islands">United States Minor Outlying Islands</option>
+							<option value="Uruguay">Uruguay</option>
+							<option value="Uzbekistan">Uzbekistan</option>
+							<option value="Vanuatu">Vanuatu</option>
+							<option value="Venezuela">Venezuela</option>
+							<option value="Viet Nam">Viet Nam</option>
+							<option value="Virgin Islands, British">Virgin Islands, British</option>
+							<option value="Virgin Islands, U.S.">Virgin Islands, U.S.</option>
+							<option value="Wallis and Futuna">Wallis and Futuna</option>
+							<option value="Western Sahara">Western Sahara</option>
+							<option value="Yemen">Yemen</option>
+							<option value="Zambia">Zambia</option>
+							<option value="Zimbabwe">Zimbabwe</option>
+						</select>
+					</div>
+					</li>
+					<li>
+						<div class="settings-description">Time zone</div>
+						<div class="settings-value">
+							<select name="timezone" id="timezone">
+								<option value="-12.0">(GMT -12:00) Eniwetok, Kwajalein</option>
+								<option value="-11.0">(GMT -11:00) Midway Island, Samoa</option>
+								<option value="-10.0">(GMT -10:00) Hawaii</option>
+								<option value="-9.0">(GMT -9:00) Alaska</option>
+								<option value="-8.0">(GMT -8:00) Pacific Time (US &amp; Canada)</option>
+								<option value="-7.0">(GMT -7:00) Mountain Time (US &amp; Canada)</option>
+								<option value="-6.0">(GMT -6:00) Central Time (US &amp; Canada), Mexico City</option>
+								<option value="-5.0">(GMT -5:00) Eastern Time (US &amp; Canada), Bogota, Lima</option>
+								<option value="-4.0">(GMT -4:00) Atlantic Time (Canada), Caracas, La Paz</option>
+								<option value="-3.5">(GMT -3:30) Newfoundland</option>
+								<option value="-3.0">(GMT -3:00) Brazil, Buenos Aires, Georgetown</option>
+								<option value="-2.0">(GMT -2:00) Mid-Atlantic</option>
+								<option value="-1.0">(GMT -1:00 hour) Azores, Cape Verde Islands</option>
+								<option value="0.0">(GMT) Western Europe Time, London, Lisbon, Casablanca</option>
+								<option value="1.0">(GMT +1:00 hour) Brussels, Copenhagen, Madrid, Paris</option>
+								<option value="2.0">(GMT +2:00) Kaliningrad, South Africa</option>
+								<option value="3.0">(GMT +3:00) Baghdad, Riyadh, Moscow, St. Petersburg</option>
+								<option value="3.5">(GMT +3:30) Tehran</option>
+								<option value="4.0">(GMT +4:00) Abu Dhabi, Muscat, Baku, Tbilisi</option>
+								<option value="4.5">(GMT +4:30) Kabul</option>
+								<option value="5.0">(GMT +5:00) Ekaterinburg, Islamabad, Karachi, Tashkent</option>
+								<option value="5.5">(GMT +5:30) Bombay, Calcutta, Madras, New Delhi</option>
+								<option value="5.75">(GMT +5:45) Kathmandu</option>
+								<option value="6.0">(GMT +6:00) Almaty, Dhaka, Colombo</option>
+								<option value="7.0">(GMT +7:00) Bangkok, Hanoi, Jakarta</option>
+								<option value="8.0">(GMT +8:00) Beijing, Perth, Singapore, Hong Kong</option>
+								<option value="9.0">(GMT +9:00) Tokyo, Seoul, Osaka, Sapporo, Yakutsk</option>
+								<option value="9.5">(GMT +9:30) Adelaide, Darwin</option>
+								<option value="10.0">(GMT +10:00) Eastern Australia, Guam, Vladivostok</option>
+								<option value="11.0">(GMT +11:00) Magadan, Solomon Islands, New Caledonia</option>
+								<option value="12.0">(GMT +12:00) Auckland, Wellington, Fiji, Kamchatka</option>
+							</select>
+						</div>
+					</li>
+					<li>
+						<div class="settings-description">Home location</div>
+						<div class="settings-value">
+							<input type="text" name="homelocation" id="homelocation" />
+						</div>
+				</ul>
+				<div class="settings-description"></div>
+				<div class="settings-value">
+					<div class="settings-text">
+						<p>we need this information to analyze youre geological patterns in order to
+						provide you with the better suggestions <a href="/">See our privacy policy</a></p>
+					</div>
+				</div>
+				<ul class="settings-content">
+					<li>
+						<div class="settings-description"></div>
+						<div class="settings-value" id="homelocationmap"></div>
+					</li>
+				</ul>
+				<ul class="settings-content">
+				</ul>
+				<ul class="settings-content">
+					<!-- <li>
+						<div class="settings-description">Date format</div>
+						<div class="settings-value-radio">
+							<form>
+								<input type="radio" name="dateformat" value="1" /> <p>12/3/2010</p>
+								<input type="radio" name="dateformat" value="2" /> <p>12/3/2010</p>
+							</form>
+						</div>
+					</li>
+					<li>
+						<div class="settings-description">Time format</div>
+						<div class="settings-value-radio">
+							<form>
+								<input type="radio" name="timeformat" value="1" /> <p>5:00pm</p>
+								<input type="radio" name="timeformat" value="2" /> <p>5:00pm</p>
+							</form>
+						</div>
+					</li> -->
+					<li>
+						<div class="settings-description">Default intersubjectivity</div>
+						<div class="settings-value-radio">
+							<form>
+								<input type="radio" name="intersubjectivity" value="public" /> <p>Public</p>
+								<input type="radio" name="intersubjectivity" value="limited" /> <p>Limited</p>
+								<input type="radio" name="intersubjectivity" value="private" /> <p>Private</p>
+							</form>
+						</div>
+					</li>
+					<li>
+						<div class="settings-description">Skip RSVP for new entries</div>
+						<div class="settings-value-radio">
+							<form>
+								<input type="checkbox" name="skiprsvp" />
+							</form>
+						</div>
+					</li>
+				</ul>
+				<div class="settings-btn-position">
+					<form>
+						<input type="submit" value="Save new settings" class="settings-btn" id="save-settings-btn" />
+					</form>
+				</div>
+	
+				<div class="section-title">
+					<h2>Password change</h2>
+				</div>
+				<ul class="settings-content">
+					<li>
+						<div class="settings-description">Old password</div>
+						<div class="settings-value">
+							<input type="password" name="oldpass" id="currentpass" />
+						</div>
+					</li>
+					<li>
+						<div class="settings-description">New password</div>
+						<div class="settings-value">
+							<input type="password" name="newpass" id="newpass" />
+						</div>
+					</li>
+					<li>
+						<div class="settings-description">Retype new password</div>
+						<div class="settings-value">
+							<input type="password" name="retypenewpass" id="retypenewpass" />
+						</div>
+					</li>
+				</ul>
+				<div class="settings-btn-position">
+					<form>
+						<input type="submit" value="Change password" class="settings-btn" id="save-password-btn" />
+					</form>
+				</div>
+				
+				<div class="section-title">
+					<h2>Delete account</h2>
+				</div>
+				<ul class="settings-content">
+					<li>
+						<div class="settings-description">Delete your account</div>
+						<div class="settings-delete-btn">
+							<form>
+								<input type="submit" value="Delete account" id="settings-delete-btn" />
+							</form>
+						</div>
+					</li>
+				</ul>
+				<div class="settings-text">
+					<p>Once deleted all your data wil be erased and can not be recovered, so be carefull what you do.</p>
+				</div>
+			</div>
+					
+			<div id="reminders-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Your reminders</h2>
+				</div>
+				<ul class="settings-content">
+					<li></li>
+				</ul>
+			</div>
+			
+			<div id="services-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Services</h2>
+				</div>
+				<ul class="settings-content">
+					<li></li>
+				</ul>
+			</div>
+			
+			<div id="entities-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Edit entities</h2>
+				</div>
+				<ul class="settings-content">
+					<li></li>
+				</ul>
+			</div>
+			
+			<div id="sharing-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Share options</h2>
+				</div>
+				<ul class="settings-content">
+					<li></li>
+				</ul>
+			</div>
+			
+			<div id="dataimport-settings" class="settings-tab">
+				<div class="section-title">
+					<h2>Data import</h2>
+				</div>
+				<p>You can easily import your data from numerous services and applications you currently use. Sync supported services are labeled with <img src="images/bgr/sync-simbol.png" alt="sync" /></p>
+				<p><a href="/">Please see help</a> if your service / software is not on the list.</p>
+				<div class="border-shadow">asdf</div>
+				<section id="import-data-01" class="import-data">
+					<article id="import-delicious" class="import-data hentry">
+						<header>
+							<div class="importdata_img_delicius"></div>
+							<h1 class="import-data-title">Delicious</h1>
+						</header>
+						<footer>
+							<section class="import-status">
+							</section>
+						</footer>
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu>
+						<section id="import-data-delicious" class="import-data-content" style="display:none">
+						
+						<!-- right example!!! -->
+							<form id="userpass-bar" action="javascript: return false;" onsubmit="javascript: mmUI.setImportSettings('delicious', true); return false;">
+								<fieldset>
+									<input type="text" class="synclogindata" id="username" name="new-entry" placeholder="username" />
+									<input type="password" class="synclogindata" id="password" name="new-entry" placeholder="********" />
+									<input type="submit" id="create" value="Connect" />
+								</fieldset>
+							</form>
+							<div class="user-data">Username</div>
+							<div class="pass-data">Password (<a href="/">show password</a>)</div>
+							<div class="tick-form">
+								<form>
+									<input type="text" class="synctextoptions" name="actiontags" placeholder="Action tags" />
+								</form>
+							</div>
+						</section>
+					</article> 
+					<article id="import-facebook" class="import-data hentry">
+						<header> 
+							<div class="importdata_img_facebook"></div>
+							<h1 class="import-data-title">Facebook events</h1> 
+						</header>
+						<footer> 
+							<section class="import-status"> 
+							</section> 
+						</footer>
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-facebook" class="import-data-content" style="display:none">
+							<form id="userpass-bar" action="javascript: return false;" onsubmit="javascript: mmUI.setImportSettings('facebook', true); return false;">
+		            			<fieldset> 
+		            				facebook import
+		            				<input type="text" class="synclogindata" id="username" name="new-entry" placeholder="username" /> 
+		            				<input type="password" class="synclogindata" id="password" name="new-entry" placeholder="********" /> 
+		            				<input type="submit" id="create" value="Connect" />
+		            			</fieldset>
+							</form>
+							<div class="user-data">Username</div>
+							<div class="pass-data">Password (<a href="/">show password</a>)</div>
+						</section>
+					</article>
+					<article id="import-google" class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_google"></div>
+							<h1 class="import-data-title">Google</h1> 
+						</header> 
+						<footer> 
+							<section class="import-status"> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-google" class="import-data-content" style="display:none">
+							<form id="userpass-bar" action="javascript: return false;" onsubmit="javascript: mmUI.setImportSettings('google', true); return false;">
+								<fieldset>
+									<input type="text" class="synclogindata" id="username" name="new-entry" placeholder="username" />
+									<input type="password" class="synclogindata" id="password" name="new-entry" placeholder="********" />
+									<input type="submit" id="create" value="Connect" />
+								</fieldset>
+							</form>
+							<div class="user-data">Username</div>
+							<div class="pass-data">Password (<a href="/">show password</a>)</div>
+						</section>
+					</article>
+					<article id="import-lastfm" class="import-data hentry">
+						<header>
+							<div class="importdata_img_lastfm"></div>
+							<h1 class="import-data-title">Last.Fm</h1> 
+						</header> 
+						<footer> 
+							<section class="import-status">
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu>
+						<section id="import-data-lastfm" class="import-data-content" style="display:none">
+							<form id="userpass-bar" action="javascript: return false;" onsubmit="javascript: mmUI.setImportSettings('lastfm', true); return false;">
+								<fieldset>
+									<input type="text" class="synclogindata" id="username" name="new-entry" placeholder="username" />
+									<input type="submit" id="create" value="Connect" />
+								</fieldset>
+							</form>
+							<div class="user-data">Username</div>
+						</section>
+					</article> 
+		<!--            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_rememberthemilk"></div><h1 class="import-data-title">Remember the milk</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-005" onclick="javascript: $('#import-data-005').toggle(); return false;" class="conect_btn">Enable connection</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-005" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_mobileme"></div><h1 class="import-data-title">Mobile.me</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-006" onclick="javascript: $('#import-data-006').toggle(); return false;" class="conect_btn">Enable connection</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-006" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_youtube"></div><h1 class="import-data-title">You Tube</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-007" onclick="javascript: $('#import-data-007').toggle(); return false;" class="conect_btn">Enable connection</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-007" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_twitter"></div><h1 class="import-data-title">Twitter</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-008" onclick="javascript: $('#import-data-008').toggle(); return false;" class="conect_btn">Enable connection</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-008" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_outlook"></div><h1 class="import-data-title">Outlook</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-009" onclick="javascript: $('#import-data-009').toggle(); return false;" class="conect_btn">Import data</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-009" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_ical"></div><h1 class="import-data-title">iCal</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-010" onclick="javascript: $('#import-data-010').toggle(); return false;" class="conect_btn">Import data</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-010" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+		 
+						</section> 
+					</article> 
+		            <article class="import-data hentry"> 
+						<header> 
+							<div class="importdata_img_things"></div><h1 class="import-data-title">Things</h1> 
+						</header> 
+						<footer> 
+							<section> 
+								<a href="#import-data-011" onclick="javascript: $('#import-data-011').toggle(); return false;" class="conect_btn">Import data</a> 
+							</section> 
+						</footer> 
+						<menu class="move_second"> 
+							<li><a href="/" title="Move up">Up</a></li> 
+							<li><a href="/" title="Move down">Down</a></li> 
+						</menu> 
+						<section id="import-data-011" class="import-data-content" style="display:none"> 
+		 
+		                     <form id="userpass-bar" method="post" action=""> 
+		            			<fieldset> 
+		 
+		            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+		            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+		            				<input type="submit" id="create" value="Connect"> 
+		            			</fieldset> 
+			            	</form> 
+		                    <div class="user-data">Username</div> 
+		                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+		                    <div class="tick-form"> 
+		                        <form> 
+		                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+		                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+		                        </form> 
+		                        <form class="clear-part"> 
+		                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+		                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+		                        </form> 
+		                    </div> 
+						</section> 
+					</article> -->
+				</section>		
+			</div>
+			
+		</div>
+	</div> 
+	<aside role="complementary"> 
+	</aside> 
+</div>
+
+<!-- EX##dr OLD DATA IMPORT - remove?
+<div id="importcontent" style="display:none">
+	<div id="main" role="main">
+		<div class="data-import-title">
+			<h1>Data Import</h1>
+			<p>You can easily import your data from numerous services and applications you currently use. Sync supported services are labeled with "<img src="images/bgr/sync-simbol.png" alt="sync" />".</p>
+			<p><a href="/">Please see help</a> if your service / software is not on the list.</p>
+		</div>
+		<div class="border-shadow">asdf</div>
+		<section id="import-data-01" class="import-data">
+			<article class="import-data hentry">
+				<header>
+					<div class="importdata_img_delicius"></div>
+					<h1 class="import-data-title">Delicious</h1>
+				</header>
+				<footer>
+					<section>
+						<a href="#import-data-001" onclick="javascript: $('#import-data-001').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer>
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu>
+				<section id="import-data-001" class="import-data-content" style="display:none">
+					<form id="userpass-bar" method="post" action="">
+						<fieldset>
+							<input type="text" id="username" name="new-entry" placeholder="username" />
+							<input type="password" id="password" name="new-entry" placeholder="********" />
+							<input type="submit" id="create" value="Connect" />
+						</fieldset>
+					</form>
+					<div class="user-data">Username</div>
+					<div class="pass-data">Password (<a href="/">show password</a>)</div>
+					<div class="tick-form">
+						<form>
+							<input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p>
+							<input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/>
+						</form>
+						<form class="clear-part">
+							<input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p>
+							<input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p>
+						</form>
+					</div>
+				</section>
+			</article> 
+			<article class="import-data hentry">
+				<div class="enabled-sync">enabled</div>
+				<header> 
+					<div class="importdata_img_facebook"></div><h1>Facebook</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-002" onclick="javascript: $('#import-data-002').toggle(); return false;" class="disconnect_btn">Disconnect</a>
+						<div class="working-sync"><p>Data sync working</p><img src="images/bgr/ok-simbol.png" alt="ok" /></div>
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-002" class="import-data-content" style="display:none">
+					<form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+            				<input type="text" id="username" name="new-entry" placeholder="username" /> 
+            				<input type="password" id="password" name="new-entry" placeholder="********" /> 
+            				<input type="submit" id="create" value="Connect" />
+            			</fieldset>
+					</form>
+					<div class="user-data">Username</div>
+					<div class="pass-data">Password (<a href="/">show password</a>)</div>
+					<div class="tick-form">
+						<form>
+							<input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p>
+							<input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/>
+						</form>
+						<form class="clear-part">
+							<input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p>
+							<input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p>
+						</form>
+					</div>
+				</section>
+			</article>
+			<article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_google"></div><h1>Google</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-003" onclick="javascript: $('#import-data-003').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-003" class="import-data-content" style="display:none">
+					<form id="userpass-bar" method="post" action="">
+						<fieldset>
+							<input type="text" id="username" name="new-entry" placeholder="username" />
+							<input type="password" id="password" name="new-entry" placeholder="********" />
+							<input type="submit" id="create" value="Connect" />
+						</fieldset>
+					</form>
+					<div class="user-data">Username</div>
+					<div class="pass-data">Password (<a href="/">show password</a>)</div>
+					<div class="tick-form">
+						<form>
+							<input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p>
+							<input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/>
+						</form>
+						<form class="clear-part">
+							<input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p>
+							<input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p>
+						</form>
+					</div>
+				</section>
+			</article>
+			<article class="import-data hentry">
+				<header>
+					<div class="importdata_img_lastfm"></div><h1 class="import-data-title">Last.Fm</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-004" onclick="javascript: $('#import-data-004').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu>
+				<section id="import-data-004" class="import-data-content" style="display:none">
+					<form id="userpass-bar" method="post" action="">
+						<fieldset>
+							<input type="text" id="username" name="new-entry" placeholder="username" />
+							<input type="password" id="password" name="new-entry" placeholder="********" />
+							<input type="submit" id="create" value="Connect" />
+						</fieldset>
+					</form>
+					<div class="user-data">Username</div>
+					<div class="pass-data">Password (<a href="/">show password</a>)</div>
+					<div class="tick-form">
+						<form>
+							<input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p>
+							<input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/>
+						</form>
+						<form class="clear-part">
+							<input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p>
+							<input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p>
+						</form>
+					</div>
+				</section>
+			</article> 
+<!--            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_rememberthemilk"></div><h1 class="import-data-title">Remember the milk</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-005" onclick="javascript: $('#import-data-005').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-005" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_mobileme"></div><h1 class="import-data-title">Mobile.me</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-006" onclick="javascript: $('#import-data-006').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-006" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_youtube"></div><h1 class="import-data-title">You Tube</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-007" onclick="javascript: $('#import-data-007').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-007" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_twitter"></div><h1 class="import-data-title">Twitter</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-008" onclick="javascript: $('#import-data-008').toggle(); return false;" class="conect_btn">Enable connection</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-008" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_outlook"></div><h1 class="import-data-title">Outlook</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-009" onclick="javascript: $('#import-data-009').toggle(); return false;" class="conect_btn">Import data</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-009" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_ical"></div><h1 class="import-data-title">iCal</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-010" onclick="javascript: $('#import-data-010').toggle(); return false;" class="conect_btn">Import data</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-010" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article> 
+            <article class="import-data hentry"> 
+				<header> 
+					<div class="importdata_img_things"></div><h1 class="import-data-title">Things</h1> 
+				</header> 
+				<footer> 
+					<section> 
+						<a href="#import-data-011" onclick="javascript: $('#import-data-011').toggle(); return false;" class="conect_btn">Import data</a> 
+					</section> 
+				</footer> 
+				<menu class="move_second"> 
+					<li><a href="/" title="Move up">Up</a></li> 
+					<li><a href="/" title="Move down">Down</a></li> 
+				</menu> 
+				<section id="import-data-011" class="import-data-content" style="display:none"> 
+ 
+                     <form id="userpass-bar" method="post" action=""> 
+            			<fieldset> 
+ 
+            				<input type="text" id="username" name="new-entry" placeholder="username"> 
+            				<input type="password" id="password" name="new-entry" placeholder="********"> 
+            				<input type="submit" id="create" value="Connect"> 
+            			</fieldset> 
+	            	</form> 
+                    <div class="user-data">Username</div> 
+                    <div class="pass-data">Password (<a href="/">show password</a>)</div> 
+                    <div class="tick-form"> 
+                        <form> 
+                          <input type="checkbox" name="contacts" value="contacts" /> <p>Import Contacts</p> 
+                          <input type="checkbox" name="calendars" value="calendars" /> <p>Import Calendars</p> <br/> 
+                        </form> 
+                        <form class="clear-part"> 
+                            <input type="checkbox" name="e-mails" value="e-mails" /> <p>Import E-mails </p> 
+                          <input type="checkbox" name="todos" value="todos" /> <p>Import ToDo's </p> 
+                        </form> 
+                    </div> 
+ 
+				</section> 
+			</article>
+		</section> -->
+	</div>
+	<aside role="complementary"> 
+	</aside>
+</div>
+
+<footer role="contentinfo" id="appfooter" style="display:none">
+	<section>
+		<nav role="navigation">
+			<ul id="global">
+<!--				<li><a href="/">Help</a></li>
+				<li><a href="/">Mobile applications</a></li>
+				<li><a href="/">Contact</a></li>
+				<li><a href="/">About</a></li>
+				<li><a href="/">Feedback</a></li>
+				<li><a href="/">Terms of use</a></li>
+				<li><a href="/">Privacy policy</a></li>-->
+			</ul>
+		</nav>
+		<small class="vcard">
+			&copy; 2010 <a href="http://www.middlemachine.com/" class="url fn org" rel="home">middlemachine</a>
+		</small>
+	</section>
+</footer>
+
+<script type="text/javascript">
+document.write(unescape('%3Cscript src="js/jquery.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/ui.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/ui-full.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/functions.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.moreLess.1.0.min.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/mmui-common.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/mmui.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.jsonp-2.1.2.min.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.editable-1.3.3.js"%3E%3C/script%3E'));
+/*document.write(unescape('%3Cscript src="js/jquery.editable.min.js"%3E%3C/script%3E'));*/
+document.write(unescape('%3Cscript src="js/jquery.md5.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/jquery.lazyload.mini.js"%3E%3C/script%3E'));
+/* document.write(unescape('%3Cscript src="js/jquery-ui-1.8.4.custom.min.js"%3E%3C/script%3E')); */
+/* document.write(unescape('%3Cscript src="js/jquery-autocomplete/jquery.autocomplete.js"%3E%3C/script%3E')); */
+/* document.write(unescape('%3Cscript src="js/fullcalendar.min.js"%3E%3C/script%3E')); */
+document.write(unescape('%3Cscript src="js/jquery.editinplace.js"%3E%3C/script%3E'));
+document.write(unescape('%3Cscript src="js/ace/ace-mima.js"%3E%3C/script%3E'));
+</script>
+
+<script type="text/javascript">
+$(function() {
+	$('#mainsettingtabs').tabs();
+});
+</script>
+
+
+</body>
+</html>

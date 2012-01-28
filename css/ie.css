@@ -1,0 +1,19 @@
+
+
+.entries>.passed {border:.1em solid #fff;background-color:#edf7fa;}
+
+.slider {background:#c7d4d9 url(../images/bgr/grad-ie.png) repeat-x;}
+.slider>a {background: #edf7fa url(../images/bgr/grad-slider-ie.png) repeat-x;}
+
+.entries>article,.aims li,#primary>li,#aims ul>li {behavior:url(css/pie.htc);}
+
+html {overflow-x:hidden;}
+
+/*
+
+#gradient {
+		filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#4477a1', endColorstr='#81a8cb'); IE6,IE7
+		-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr='#4477a1', endColorstr='#81a8cb')"; IE8
+}
+
+*/
