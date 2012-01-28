@@ -288,9 +288,12 @@ FetchCntl.prototype = {
 		</ul>
 		<ul id="primary"> 
 			<li class="selected" id="agendalink"><a href="#agenda/">Agenda</a></li> 
-			<li id="schedulelink"><a href="#schedule/"><span>12</span>Schedule</a></li>
+			<!-- <li id="schedulelink"><a href="#schedule/"><span>12</span>Schedule</a></li> -->
 			<li id="padlink"><a href="#pad/"><span></span>Pad</a></li> 
+			<li id="meanxyLink"><a href="#meanxy/">Meanxy</a></li>
 			<li id="locationlink"><a href="#locations/">Locations</a></li> 
+			<li id="chartsLink"><a href="#charts/">Charts</a></li>
+			<li id="manurelLink"><a href="#manurel/">Manurel</a></li>
 		</ul> 
 	</nav> 
 </header> 
@@ -493,6 +496,16 @@ FetchCntl.prototype = {
 		<section id="aims">
 		</section>
 	</aside>
+</div>
+
+<div class="embeddable" id="meanxyContent" style="display:none">
+  <iframe data-src="meanxy/index.html" frameBorder="0"></iframe>
+</div>
+<div class="embeddable" id="chartsContent" style="display:none" frameBorder="0">
+  <iframe data-src="http://middlemachine.com/charts.jsp"></iframe>
+</div>
+<div class="embeddable" id="manurelContent" style="display:none" frameBorder="0">
+  <iframe data-src="http://www.middlemachine.com/manurel.jsp"></iframe>
 </div>
 
 <div id="locationcontent" style="display:none">

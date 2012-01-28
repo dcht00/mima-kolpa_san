@@ -1,3 +1,10 @@
+// BUG: If connection drops user is logged out and CPU usage skyrockets
+
+// S1E: Group functions into distinct modules and partition into seperate files
+// S1E: Use proper templating to unclutter view logic
+// S1E: Break functions down-to subroutines to turn them into composed methods
+// S1E: (De)Couple appropriately to create models, views and controllers
+
 mmUI = new Object();
 
 mmUI.uiver = 'v2011-10-28 20:09';
@@ -42,18 +49,18 @@ mmUI.editor = null;
 mmUI.access_token = '0B535081575ADF13F0057C7EB49E52F6';
 mmUI.account = 'sparklehorse%40middlemachine.com';
 mmUI.username = 'sparlky horse';
-/**/
+*/
 /*
 action={update,save}
 type={aim,interest,}
-/**/
+*/
 /* entry parameters
 text
 priority
-/**/
+*/
 
-mmUI.updateCurrentRequestInfo = function()
-{
+// app loading view
+mmUI.updateCurrentRequestInfo = function() {
 	var cont = 'Loading ';
 	var found = false;
 	var currdate=new Date().getTime();
@@ -61,130 +68,133 @@ mmUI.updateCurrentRequestInfo = function()
 	var currentReqs = {};
 	var operations = {'loading':null, 'saving':null};
 	for(var time in mmUI.startedRequests) {
-		if(mmUI.startedRequests[time]==null ) continue;
-		if(mmUI.startedRequests[time]==time) continue;
+		if (mmUI.startedRequests[time]==null) continue;
+		if (mmUI.startedRequests[time]==time) continue;
 		var spl = mmUI.startedRequests[time].split(':');
 		//alert(spl[0]+' '+spl[1]);
 		operations[spl[0]] = true;
-		if( currdate > time+timeout ) {
+		if (currdate > time+timeout) {
 			//handle timeout?
 			mmUI.startedRequests[time] = null;
 		}
 		currentReqs[time] = time;
-		//if(found) cont += ', ';
+		//if (found) cont += ', ';
 		found = true;
 		//cont += mmUI.startedRequests[time];
 	}
 	mmUI.startedRequests = currentReqs;
 	cont += ' <img src="images/wait.gif">';
-	if(!found) cont = '';
+	if (!found) cont = '';
 	for(var i in operations) {
-		if(mmUI.debug>0) console.log(i+' '+operations[i]);
-		if(operations[i]!=null) {
+		if (mmUI.debug>0) console.log(i+' '+operations[i]);
+		if (operations[i]!=null) {
 			//$('#'+i+'msg').show();
-			//if( $('#'+i+'msg').is(':hidden') ) $('#'+i+'msg').show('highlight');
+			//if ($('#'+i+'msg').is(':hidden')) $('#'+i+'msg').show('highlight');
 		} else {
-			//if( $('#'+i+'msg').is(':visible') ) $('#'+i+'msg').hide('blind');
+			//if ($('#'+i+'msg').is(':visible')) $('#'+i+'msg').hide('blind');
 			//$('#'+i+'msg').hide();
 		}
 	}
 	
 	var html = '';
-	if( !empty(mmUI.messages['filtered']) ) html += mmUI.messages['filtered'];
-	if( !empty(mmUI.messages['ground']) ) html += mmUI.messages['ground'];
-	if( !empty(cont) ) html += (empty(html)?'':'<br> ') + cont;
-	if( !empty(html) ) {
+	if (!empty(mmUI.messages['filtered'])) html += mmUI.messages['filtered'];
+	if (!empty(mmUI.messages['ground'])) html += mmUI.messages['ground'];
+	if (!empty(cont)) html += (empty(html)?'':'<br> ') + cont;
+	if (!empty(html)) {
 		$('#filteredby').html(html).fadeIn('fast');
 	} else {
 		$('#filteredby').html('');
 	}
 	
 	//$('#currentrequests').html(cont);
-//	setTimeout(150, 'updateCurrentRequestInfo()');
+	//setTimeout(150, 'updateCurrentRequestInfo()');
 }
 
-function JSONPCall(context,params,func,errfunc,descriptive)
-{
-	if(empty(mmUI.apiurl)) return mmUI.logout();//if a server is not defined, you just cant make a call.
+// app request
+function JSONPCall(context, params, func, errfunc, descriptive) {
+	if (empty(mmUI.apiurl)) return mmUI.logout();//if a server is not defined, you just cant make a call.
 	//alert(mmUI.apiurl);
 	var reqdate=new Date().getTime();
-	if(descriptive==null) descriptive = reqdate;
+	if (descriptive==null) descriptive = reqdate;
 	
 	mmUI._setCookie('lastcookieupdate',reqdate,90);
 	
 	mmUI.startedRequests[reqdate] = descriptive;
 	mmUI.updateCurrentRequestInfo();	
-	if( params.length>0 && params[0] != '&' ) params = '&'+params;
-//	$.getJSON(mmUI.apiurl+'/BTW/'+context+'/'+mmUI.account+'?access_token='+mmUI.access_token+'&'+params+'&json_callback=?', function(dataall){
-	$.jsonp({timeout: 25000,"url": mmUI.apiurl+'/BTW/'+context+'/'+mmUI.account+'?access_token='+mmUI.access_token+params+'&json_callback=?', "success": function(dataall){
-		if( mmUI.checkError(dataall) ) {
-/*			updateCurrentRequestInfo();
-			if(context!='api/logout') {
-				setupUI();
+	if (params.length>0 && params[0] != '&') params = '&'+params;
+	//	$.getJSON(mmUI.apiurl+'/BTW/'+context+'/'+mmUI.account+'?access_token='+mmUI.access_token+'&'+params+'&json_callback=?', function(dataall) {
+	$.jsonp({timeout: 25000,"url": mmUI.apiurl+'/BTW/'+context+'/'+mmUI.account+'?access_token='+mmUI.access_token+params+'&json_callback=?', "success": function(dataall) {
+		if (mmUI.checkError(dataall)) {
+			/*
+			updateCurrentRequestInfo();
+			if (context!='api/logout') {
+				mmUI.setupUI();
 				return mmUI.logout();
-			}*/
-			if(errfunc!=null) errfunc(dataall);
+			}
+			*/
+			if (errfunc!=null) errfunc(dataall);
 			return;
 		}
 		var respdate=new Date().getTime();
 		mmUI.startedRequests[reqdate] = null;
-		if(func!=null) func(dataall);
+		if (func!=null) func(dataall);
 		mmUI.updateCurrentRequestInfo();	
-	}, "error": function(d,msg){
+	}, "error": function(d,msg) {
 		mmUI.startedRequests[reqdate] = null;
 		//alert("Error "+d+", "+msg);//TODO ZACASNO
 		mmUI.updateCurrentRequestInfo();	
-		if(context!='api/logout') {
-			setupUI();
+		if (context!='api/logout') {
+			mmUI.setupUI();
 			return mmUI.logout();
 		}
 	}
 	});
 }
 
-
-function disableDnD(){
+// entries dnd helper
+function disableDnD() {
 	$('section#entries-01,section#entries-02,section#entries-03').sortable('disable');
 	dragin = true;
 }
 
-function enableDnD(){
+// entries dnd helper
+function enableDnD() {
 	$('section#entries-01,section#entries-02,section#entries-03').sortable('enable');
 	dragin = false;
 }
 
-
-
-mmUI.isUserLoggedIn = function()
-{
-	if(empty(mmUI.access_token)||empty(mmUI.apiurl)) return false;
+// user helper
+mmUI.isUserLoggedIn = function() {
+	if (empty(mmUI.access_token)||empty(mmUI.apiurl)) return false;
 	return true;
 }
-mmUI.checkError = function(msg)
-{
-	if(!empty(msg.error)) {
-		if( msg.error_code==200 ) {
+
+// S1E: invoked from jsonp callbacks as default error handler
+// app routing
+mmUI.checkError = function(msg) {
+	if (!empty(msg.error)) {
+		if (msg.error_code==200) {
 			mmUI.logout();
-//			setupUI();
+			//mmUI.setupUI();
 			return true;
 		}
 		//alert('error!');//TODO handle errors gracefully - dont upset the user:)
 		return true;
 	}	
-	if(mmUI.debug>0) console.log('checkerror fail');
+	if (mmUI.debug>0) console.log('checkerror fail');
 	return false;
 }
 
-mmUI.initializeUI = function()
-{
+// app ui init
+mmUI.initializeUI = function() {
 	mmUI.loaded = {};
 	mmUI.startedRequests = {};
 	mmUI.messages = {};
 	mmUI.requestCache = {};
 }
 
-mmUI.initializeDOM = function()
-{
+// app view
+mmUI.initializeDOM = function() {
 	$('#entries-01').html('');
 	$('#entries-02').html('');
 	$('#entries-03').html('');
@@ -194,41 +204,42 @@ mmUI.initializeDOM = function()
 	$('#loginmsg').html('');
 }
 
-mmUI.checkForUpdate = function() 
-{
+// app cache manifest
+mmUI.checkForUpdate = function() {
 	var cstamp = new Date().getTime();
-	if(mmUI.lastUpdateCheck!=null && ((cstamp - mmUI.lastUpdateCheck) < 30000) ) return;
+	if (mmUI.lastUpdateCheck!=null && ((cstamp - mmUI.lastUpdateCheck) < 30000)) return;
 	mmUI.lastUpdateCheck = cstamp;
-	/** todo check */
-	$.get('version/', function(data){
-		if( !empty(data) && mmUI.uiver != data ) {
+	//TODO check
+	$.get('version/', function(data) {
+		if (!empty(data) && mmUI.uiver != data) {
 			//return;
 			//alert(location.href); 
 			//$('#justsubmit').submit();
-			if(location.href.search('reload')!=-1) alert('Please reload page to receive new version');
+			if (location.href.search('reload')!=-1) alert('Please reload page to receive new version');
 			//location.href = '.?'+Math.random();
 		}
 	});
 }
-mmUI.updateEntryValue = function(id, key, value, func)
-{
-	JSONPCall('entry','&update=entry&eid='+id+'&'+key+'='+encodeURIComponent(value), function(dataall){
-		if(!empty(func) ) func(dataall);
-	},null,'saving:updating entry value');
-}
 
-mmUI.deleteEntry = function(id)
-{
-	JSONPCall('entry','&action=delete&eid='+id, function(dataall){
+// entries update request helper
+mmUI.updateEntryValue = function(id, key, value, func) {
+	JSONPCall('entry','&update=entry&eid='+id+'&'+key+'='+encodeURIComponent(value), function(dataall) {
+		if (!empty(func)) func(dataall);
+	},null,'saving:updating entry value');
+ }
+
+// entries delete request, callback
+mmUI.deleteEntry = function(id) {
+	JSONPCall('entry','&action=delete&eid='+id, function(dataall) {
 		mmUI.updateEntries();
 	},null,'saving:deleting entry');
-}
+ }
 
-mmUI.updatePad = function()
-{
+// pad get request, view callback, event bindings
+mmUI.updatePad = function() {
 	mmUI.editor = ace.edit("padeditor");
 		
-	JSONPCall('pad','', function(dataall){
+	JSONPCall('pad','', function(dataall) {
 		mmUI.editor.getSession().setValue(dataall.pad);
 		mmUI.editor.setShowPrintMargin(false);
 		mmUI.editor.getSession().setUseSoftTabs(false);
@@ -265,55 +276,55 @@ mmUI.updatePad = function()
 	
 	// ZA CUSTOM PAD!!!
 	/*
-	JSONPCall('pad','', function(dataall){
+	JSONPCall('pad','', function(dataall) {
 		$('#pad').val(dataall.pad);
 		$('#pad').autoGrow();
 		$('#pad').selectRange(0, 0);
 	},null,'loading:pad');
 	
-	 * $('#pad').keydown(function(e){		
-		 if(e.keyCode === 9) { // if TAB was pressed
-		    e.preventDefault();
-		    // get caret position/selection
-		    var start = $(this)[0].selectionStart;
-		    var end = $(this)[0].selectionEnd;
+	 * $('#pad').keydown(function(e) {		
+		 if (e.keyCode === 9) { // if TAB was pressed
+				e.preventDefault();
+				// get caret position/selection
+				var start = $(this)[0].selectionStart;
+				var end = $(this)[0].selectionEnd;
 
-		    // set textarea value to: text before caret + tab + text after caret
-		    $(this).val($(this).val().substring(0, start)
-		    		+ "\t"
-		    		+ $(this).val().substring(end));
-		    
-		    // put caret at right position again
-		    $(this)[0].selectionStart = $(this)[0].selectionEnd = start + 1;
+				// set textarea value to: text before caret + tab + text after caret
+				$(this).val($(this).val().substring(0, start)
+						+ "\t"
+						+ $(this).val().substring(end));
+				
+				// put caret at right position again
+				$(this)[0].selectionStart = $(this)[0].selectionEnd = start + 1;
 
-		    // prevent the focus lose
-		    return false;
+				// prevent the focus lose
+				return false;
 		} else if (e.keyCode === 13) { // if ENTER was pressed
 			var start = $(this)[0].selectionStart;
-		    var end = $(this)[0].selectionEnd;
-		    
-		    
+				var end = $(this)[0].selectionEnd;
+				
+				
 		}
 	});
 	
 	$.fn.selectRange = function(start, end) {
-	    return this.each(function() {
-	        if (this.setSelectionRange) {
-	            this.focus();
-	            this.setSelectionRange(start, end);
-	        } else if (this.createTextRange) {
-	            var range = this.createTextRange();
-	            range.collapse(true);
-	            range.moveEnd('character', end);
-	            range.moveStart('character', start);
-	            range.select();
-	        }
-	    });
+			return this.each(function() {
+					if (this.setSelectionRange) {
+							this.focus();
+							this.setSelectionRange(start, end);
+					} else if (this.createTextRange) {
+							var range = this.createTextRange();
+							range.collapse(true);
+							range.moveEnd('character', end);
+							range.moveStart('character', start);
+							range.select();
+					}
+			});
 	};  */
 	
 	 /* AUTOGROW TEXTAREA PLUGIN */
-	/*$.fn.autoGrow = function(){
-		return this.each(function(){
+	/*$.fn.autoGrow = function() {
+		return this.each(function() {
 			// Variables
 			var colsDefault = this.cols;
 			var rowsDefault = this.rows;
@@ -339,7 +350,7 @@ mmUI.updatePad = function()
 					obj.rows = rowsDefault;
 			}
 			
-			var characterWidth = function (obj){
+			var characterWidth = function (obj) {
 				var characterWidth = 0;
 				var temp1 = 0;
 				var temp2 = 0;
@@ -366,31 +377,32 @@ mmUI.updatePad = function()
 			growByRef(this);
 		});
 	}; */
-}
-mmUI.savePad = function()
-{    
+ }
+
+// S1E: Calls updatePad which causes unnecessary reload
+// pad update request
+mmUI.savePad = function() {    
 	var padtext = mmUI.editor.getSession().getValue();
-	//$.getJSON(this.apiurl+'/BTW/pad/'+this.account+'?access_token='+this.access_token+'&save=contentofpad&json_callback=?, function(dataall){
-    JSONPCall('pad', '&save='+padtext, function(dataall){
-    	mmUI.updatePad();
-    },null,'saving:pad');
-    
+	//$.getJSON(this.apiurl+'/BTW/pad/'+this.account+'?access_token='+this.access_token+'&save=contentofpad&json_callback=?, function(dataall) {
+	JSONPCall('pad', '&save='+padtext, function(dataall) {
+		mmUI.updatePad();
+	},null,'saving:pad');
+		
 	/*
 	 * ##dr:ta koda zgoraj še ne dela - ne save-a podatke
 	 * ##dr:ex-code
 	var padtext = $('#pad').val();
-	//$.getJSON(this.apiurl+'/BTW/pad/'+this.account+'?access_token='+this.access_token+'&save=contentofpad&json_callback=?, function(dataall){
-    JSONPCall('pad', '&save='+padtext, function(dataall){
-    	mmUI.updatePad();
-    },null,'saving:pad');*/
-}
+	//$.getJSON(this.apiurl+'/BTW/pad/'+this.account+'?access_token='+this.access_token+'&save=contentofpad&json_callback=?, function(dataall) {
+		JSONPCall('pad', '&save='+padtext, function(dataall) {
+			mmUI.updatePad();
+		},null,'saving:pad');*/
+ }
 
-/* ACCOUNT SETTINGS */
-mmUI.getAccountSettings = function()
-{	
-	//$.getJSON(this.apiurl+'/BTW/settings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall){
+/*  ACCOUNT SETTINGS */
+mmUI.getAccountSettings = function() {	
+	//$.getJSON(this.apiurl+'/BTW/settings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall) {
 	JSONPCall('settings', '', function(dataall) {
-		if(empty(dataall)) return;
+		if (empty(dataall)) return;
 		
 		var clat = dataall.lat;
 		var clng = dataall.lng;
@@ -410,13 +422,13 @@ mmUI.getAccountSettings = function()
 		//delete acc button event	
 			
 		if (dataall.lat && dataall.lng) {
-			mmUI.homelatlng = ( {lat:dataall.lat, lng:dataall.lng} );
+			mmUI.homelatlng = ({lat:dataall.lat, lng:dataall.lng});
 		} else {
 			// default position @Ljubljana
-			mmUI.homelatlng = ( {lat:46.05143, lng:14.50597} );
+			mmUI.homelatlng = ({lat:46.05143, lng:14.50597});
 		}
 		
-		if(typeof google === 'undefined') {
+		if (typeof google === 'undefined') {
 			var script = document.createElement("script");
 			script.type = "text/javascript";
 			script.src = "http://maps.google.com/maps/api/js?sensor=true&callback=mmUI.setLocationMap";
@@ -425,17 +437,17 @@ mmUI.getAccountSettings = function()
 			mmUI.setLocationMap();		
 		}
 		
-		$('#homelocation').focusout(function(e){
+		$('#homelocation').focusout(function(e) {
 			var geocoder = new google.maps.Geocoder();
 			
 			if ($('#country').val() != "") {
 				var address = $('#homelocation').val() + ', ' + $('#country').val();
-				geocoder.geocode( { 'address': address}, function(results, status) {
-					  if (status == google.maps.GeocoderStatus.OK)
-					  {
-						  mmUI.homelatlng = ( {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng() } )
-						  mmUI.setLocationMap();
-					  }
+				geocoder.geocode({ 'address': address}, function(results, status) {
+						if (status == google.maps.GeocoderStatus.OK)
+						{
+							mmUI.homelatlng = ({lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng() })
+							mmUI.setLocationMap();
+						}
 				});
 			} else {
 				//alert('add country');
@@ -443,9 +455,9 @@ mmUI.getAccountSettings = function()
 		});
 		
 		/* save settings */
-		$('#account-settings #save-settings-btn').click(function(e){
+		$('#account-settings #save-settings-btn').click(function(e) {
 			e.preventDefault();
-			var settings = ( {
+			var settings = ({
 				fullname: $('#fullname').val(), 
 				email: $('#primaryemail').val(), 
 				country: $('#country').val(), 
@@ -456,13 +468,13 @@ mmUI.getAccountSettings = function()
 				lat: mmUI.homelatlng.lat, 
 				lng: mmUI.homelatlng.lng,
 				intersubjectivity: $('#account-settings input[name=intersubjectivity]:checked').val(),
-				skiprsvp: $('#account-settings input[name=skiprsvp]').is(':checked') } );
+				skiprsvp: $('#account-settings input[name=skiprsvp]').is(':checked') });
 			mmUI.saveAccountSettings(settings);
 			//kle poklicat lat lng
 		});
 
 		/* change password */
-		$('#account-settings #save-password-btn').click(function(e){
+		$('#account-settings #save-password-btn').click(function(e) {
 			e.preventDefault();
 			var currentpass = $('#account-settings #currentpass').val();
 			var newpass = $('#account-settings #newpass').val();
@@ -474,13 +486,15 @@ mmUI.getAccountSettings = function()
 		});
 
 		/* delete account */
-		$('#account-settings #settings-delete-btn').click(function(e){
+		$('#account-settings #settings-delete-btn').click(function(e) {
 			e.preventDefault();
 			if (confirm("Are you sure you want to deactivate your account?"))
 				mmUI.deleteAccount();
 		});
 	},null,'loading:settings');
-}
+ }
+
+// geo map init
 mmUI.setLocationMap = function() {
 	var latlng;
 
@@ -493,20 +507,21 @@ mmUI.setLocationMap = function() {
 	}
 	
 	var myOptions = {
-			zoom: 7,
-			center: latlng,
-		    mapTypeId: google.maps.MapTypeId.ROADMAP,
-		    navigationControl: true,
-		    disableDefaultUI: true
+		zoom: 7,
+		center: latlng,
+		mapTypeId: google.maps.MapTypeId.ROADMAP,
+		navigationControl: true,
+		disableDefaultUI: true
 	};	
 
 	var locationmap = new google.maps.Map(document.getElementById("homelocationmap"), myOptions);
 	
-	var marker = new google.maps.Marker( {position:latlng, map:locationmap} );
+	var marker = new google.maps.Marker({position:latlng, map:locationmap});
 	locationmap.setZoom(15);
 }
-mmUI.saveAccountSettings = function(settings)
-{
+
+// user update request
+mmUI.saveAccountSettings = function(settings) {
 	var settingsdata = 
 		'&set=true'+
 		'&fullname='+settings['fullname']+
@@ -522,79 +537,69 @@ mmUI.saveAccountSettings = function(settings)
 		'&skiprsvp='+settings['skiprsvp'];
 
 	/*$.getJSON(this.apiurl+'/BTW/settings/'+this.account+'?access_token='+this.access_token+'&fullname&primaryemail&country&timezone&homelocation&lat&lng&
-	json_callback=?, function(dataall){ */
+	json_callback=?, function(dataall) { */
 	JSONPCall('settings', settingsdata, function(dataall) {
-		if( mmUI.checkError(dataall) ) return;
+		if (mmUI.checkError(dataall)) return;
 	},null,'loading:save settings');
 	//alert(settingsdata);
-}
-mmUI.changePassword = function(currentpass, newpass)
-{						
-	//$.getJSON(this.apiurl+'/BTW/password/'+this.account+'?access_token='+this.access_token+'&currentpass='+currentpass+'&newpass='+newpass+'&json_callback=?, function(dataall){
+ }
+
+// user update request
+mmUI.changePassword = function(currentpass, newpass) {						
+	//$.getJSON(this.apiurl+'/BTW/password/'+this.account+'?access_token='+this.access_token+'&currentpass='+currentpass+'&newpass='+newpass+'&json_callback=?, function(dataall) {
 	JSONPCall('settings', '&changepass=true&currentpass='+currentpass+'&newpass='+newpass, function(dataall) {
-		if( mmUI.checkError(dataall) ) return;
+		if (mmUI.checkError(dataall)) return;
 	},null,'loading:saving password');
-}
-mmUI.deleteAccount = function()
-{
-	//$.getJSON(this.apiurl+'/BTW/deleteaccount/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall){
+ }
+
+// user destroy request
+mmUI.deleteAccount = function() {
+	//$.getJSON(this.apiurl+'/BTW/deleteaccount/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall) {
 	//JSONPCall('deleteaccount', '', function(dataall) {
-		//if( mmUI.checkError(dataall) ) return;
+		//if (mmUI.checkError(dataall)) return;
 	//},null,'deleting account');
-}
+ }
 
-/* REMINDER SETTINGS */
-mmUI.getRemindersSettings = function()
-{
-
-}
+/*  REMINDER SETTINGS */
+mmUI.getRemindersSettings = function() {}
 
 /* SERVICES SETTINGS */
-mmUI.getServicesSettings = function()
-{
-
-}
+mmUI.getServicesSettings = function() {}
 
 /* ENTITIES SETTINGS */
-mmUI.getEntitiesSettings = function()
-{
-
-}
+mmUI.getEntitiesSettings = function() {}
 
 /* SHARING SETTINGS */
-mmUI.getSharingSettings = function()
-{
-
-}
+mmUI.getSharingSettings = function() {}
 
 /* IMPORT DATA SETTINGS */
-mmUI.getImportSettings = function()
-{
+mmUI.getImportSettings = function() {
 	//test data
 	dataall = [ {"type":"delicious", "connected":true}, 
-			{"type":"facebook","connected":false}, 
-			{"type":"google", "connected":false}, 
-			{"type":"lastfm", "connected":false} ];
+		{"type":"facebook","connected":false}, 
+		{"type":"google", "connected":false}, 
+		{"type":"lastfm", "connected":false} ];
 	
-	//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall){
+	//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall) {
 	//JSONPCall('importsettings', '', function(dataall) {
-		if(empty(dataall)) return;
-		for (i in dataall) {
-			var importstatus = '';
-			
-			if (dataall[i].connected) {
-				importstatus = '<a onclick="javascript: mmUI.setImportSettings(\''+ dataall[i].type +'\', false); return false;" class="disconnect_btn">Disconnect</a>';
-				importstatus +='<div class="working-sync"><p>Data sync working</p><img src="images/bgr/ok-simbol.png" alt="ok" /></div>';
-			} else {
-				importstatus = '<a onclick="javascript: $(\'.import-data-content\'\).hide(); $(\'#import-data-'+ dataall[i].type +'\').show(); return false;" class="connect_btn">Enable connection</a>';
-			}
-			
-			$('#import-'+ dataall[i].type +' .import-status').html(importstatus);
+	if (empty(dataall)) return;
+
+	for (i in dataall) {
+		var importstatus = '';
+		
+		if (dataall[i].connected) {
+			importstatus = '<a onclick="javascript: mmUI.setImportSettings(\''+ dataall[i].type +'\', false); return false;" class="disconnect_btn">Disconnect</a>';
+			importstatus +='<div class="working-sync"><p>Data sync working</p><img src="images/bgr/ok-simbol.png" alt="ok" /></div>';
+		} else {
+			importstatus = '<a onclick="javascript: $(\'.import-data-content\'\).hide(); $(\'#import-data-'+ dataall[i].type +'\').show(); return false;" class="connect_btn">Enable connection</a>';
 		}
+		
+		$('#import-'+ dataall[i].type +' .import-status').html(importstatus);
+	}
 	//},null,'loading:import data');
-}
-mmUI.setImportSettings = function(type, connect)
-{
+ }
+
+mmUI.setImportSettings = function(type, connect) {
 	if (connect) {
 		var username = $('#import-data-'+ type +' #username');
 		var password = $('#import-data-'+ type +' #password');	
@@ -604,123 +609,133 @@ mmUI.setImportSettings = function(type, connect)
 		$('#import-data-'+ type +' .tick-form input[type=checkbox]').each(function() {		
 			options += '&'+ $(this).attr('value') +'='+ $(this).attr('checked');
 		});
+
+		mmUI.getImportSettings();
 		
-		//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall){
+		//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall) {
 		//JSONPCall('importsettings', '&type='+type+'&connect='+connect+options, function(dataall) {
-			//if( mmUI.checkError(dataall) ) return;
+			//if (mmUI.checkError(dataall)) return;
 			/*var dataall = [ {"type":"delicious", "connected":false}, 
-		    			{"type":"facebook","connected":true}, 
-		    			{"type":"google", "connected":true}, 
-		    			{"type":"lastfm", "connected":false} ];*/
-			mmUI.getImportSettings();
+				{"type":"facebook","connected":true}, 
+				{"type":"google", "connected":true}, 
+				{"type":"lastfm", "connected":false} ];*/
 		//},null,'loading:connecting synchronization');
 	} else {
-		//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall){
+		mmUI.getImportSettings();
+
+		//$.getJSON(this.apiurl+'/BTW/importsettings/'+this.account+'?access_token='+this.access_token+'&json_callback=?, function(dataall) {
 		//JSONPCall('importsettings', '&type='+type+'&connect='+connect, function(dataall) {
-			//if( mmUI.checkError(dataall) ) return;
+			//if (mmUI.checkError(dataall)) return;
 			/*var dataall = [ {"type":"delicious", "connected":false}, 
-		    			{"type":"facebook","connected":false}, 
-		    			{"type":"google", "connected":false}, 
-		    			{"type":"lastfm", "connected":false} ];*/
-			mmUI.getImportSettings();
+				{"type":"facebook","connected":false}, 
+				{"type":"google", "connected":false}, 
+				{"type":"lastfm", "connected":false} ];*/
 		//},null,'loading:disconnecting synchronization');
 	}
-}
+ }
 
-/**/
-mmUI.setUIObject = function(key, value)
-{
+// persistence helper
+mmUI.setUIObject = function(key, value) {
 	mmUI._setCookie(key, JSON.stringify(value), mmUI.expiretime);
 }
-mmUI.getUIObject = function(key)
-{
+
+// persistence helper
+mmUI.getUIObject = function(key) {
 	var v = mmUI._getCookie(key);
-	if( empty(v) ) return v;
+	if (empty(v)) return v;
 	return JSON.parse(v);
 }
 
-
-mmUI.saveUIParameter = function(key, value)
-{
+// persistence helper
+mmUI.saveUIParameter = function(key, value) {
 	mmUI._setCookie(key, value, mmUI.expiretime);
 }
 
-mmUI.toggleUIParameter = function(key)
-{
-	if(mmUI._getCookie(key)!='1') mmUI._setCookie(key, '1', mmUI.expiretime);
+// persistence helper
+mmUI.toggleUIParameter = function(key) {
+	if (mmUI._getCookie(key)!='1') mmUI._setCookie(key, '1', mmUI.expiretime);
 	else mmUI._setCookie(key, '0', mmUI.expiretime);
 	return mmUI._getCookie(key);
 }
 
-mmUI.getUIParameter = function(key)
-{
+// persistence helper
+mmUI.getUIParameter = function(key) {
 	return mmUI._getCookie(key);
 }
-mmUI._getEntryTagsHTML = function(entry){
-	if( empty(entry.aims) ) return '';
+
+// entry tags view
+mmUI._getEntryTagsHTML = function(entry) {
+	if (empty(entry.aims)) return '';
 	var ret = '';
-	for( aim in entry.aims ) {
+	for(aim in entry.aims) {
 		ret += '<li>'+entry.aims[aim]+' <a href="javascript: mmUI.updateRelationEntryAim('+entry.id+', \''+entry.aims[aim]+'\', true);" title="Remove">Remove</a></li>';
 	}
 	return ret;
 }
 
-mmUI._getEntrySharedHTML = function(entry){
-	if( empty(entry.share) ) return '';
+// entry shared view
+mmUI._getEntrySharedHTML = function(entry) {
+	if (empty(entry.share)) return '';
 	var ret = '';
-	for( share in entry.share ) {
+	for(share in entry.share) {
 		var shar = empty(entry.share[share].name) ? entry.share[share].email : entry.share[share].name;
 		var sharetype = "share_icon_add";
 		if (entry.share[share].type == "DELEGATED") {
 			sharetype = "share_icon_move_right";
 		}
 		//alert(shar);
-		/** TODO send id not email for deletion */
+		//TODO send id not email for deletion
 		ret += '<li><div class="'+sharetype+'"><a name="'+entry.share[share].id+'" title="'+entry.share[share].email+'"></a></div>'+shar+'<a href="javascript: mmUI.updateRelationEntryShared('+entry.id+', \''+entry.share[share].email+'\', true);" title="Remove">Remove</a></li>';
 	}
 	return ret;
 }
+
+// entry location view
 mmUI._getEntryLocationHTML = function(entry) {
 	var ret = [];
 	var i = 0;
-	if( !empty(entry.at) && !empty(entry.at.lat)	) {
+	if (!empty(entry.at) && !empty(entry.at.lat)	) {
 		ret[i++] = ('<div id="wom-'+entry.id+'">                    <div class="extralink"><a href="#locations/?location='+entry.at.id+'&backtoentry='+entry.id+'">view on map</a></div>	                 '); 
-// 		ret[i++] = ('                    <div class="extralink"><a onclick="mmUI.deleteGeoLocation('+entry.at.id+')">delete</a></div> '); 
-// 		ret[i++] = ('                    <div class="extralink"><a onclick="mmUI.updateEntryValue('+entry.id+', \'at\', \'\');">remove</a></div> '); 
+		//ret[i++] = ('                    <div class="extralink"><a onclick="mmUI.deleteGeoLocation('+entry.at.id+')">delete</a></div> '); 
+		//ret[i++] = ('                    <div class="extralink"><a onclick="mmUI.updateEntryValue('+entry.id+', \'at\', \'\');">remove</a></div> '); 
 		ret[i++] = ('                    <a href="#locations/?lat='+entry.at.lat+'&lon='+entry.at.lon+'&location='+entry.at.id+'"><img id="staticmap-'+entry.id+'"align="right" src="http://maps.google.com/maps/api/staticmap?center='+entry.at.lat+','+entry.at.lon+'&markers=color:blue|label:'+encodeURIComponent(entry.at.name)+'|'+entry.at.lat+','+entry.at.lon+'&zoom=14&size=320x160&sensor=false"></a></div>'); 
 	} else {
-		if(empty(entry.at) || empty(entry.at.id)) {
+		if (empty(entry.at) || empty(entry.at.id)) {
 			ret[i++] = ('<div id="wom-'+entry.id+'">                     <div class="extralink" id="entrylocation-'+entry.id+'"><a onclick="$(\'#at-'+entry.id+'\').click();">Click to define location</a></div>'); 
 		} else {
 			ret[i++] = ('<div id="wom-'+entry.id+'">                     <div class="extralink" id="entrylocation-'+entry.id+'"><a href="#locations/?define='+entry.at.id+'&backtoentry='+entry.id+'">Define location on map</a></div>'); 
-// 					ret[i++] = ('                    <div class="extralink"><a href="" class="editableparam">or click here to pick on map</a></div> '); 
+			//ret[i++] = ('                    <div class="extralink"><a href="" class="editableparam">or click here to pick on map</a></div> '); 
 		}
 		ret[i++] = ('                    <img id="staticmap-'+entry.id+'"align="right" src="http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld=%3f|43AAFD"></div>'); 
-//http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld=A|B88A00|002EB8		
+		//http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld=A|B88A00|002EB8		
 	}
 	return ret.join('');
 }
+
+// entry view
 mmUI._htmlEntry = function(entry) {
-//craft the entry
-	
+	//craft the entry
 }
 
-mmUI._editableTagsClose = function(id)
-{
-		//	function(event,ui)
+// S1E: Function body wrapped in object
+// entry tags view
+mmUI._editableTagsClose = function(id) {
+	var fail = true
+
+	//	function(event,ui)
 	{
 		var val = $('#'+id).val();
 		var art = $('#'+id).parents('article');
 		var eid = $('#'+id).parents('article')[0].id;
 		var t = $('#'+id);
 		//alert(val);
-		if( !empty(val) ) {
-			mmUI.updateRelationEntryAim(eid,val,false,function(entry){
+		if (!empty(val)) {
+			mmUI.updateRelationEntryAim(eid,val,false, function(entry) {
 				var aims = mmUI._getEntryTagsHTML(entry);
 				$('#assigned_tags_'+eid).html(aims);
 				t.parent().children('input').hide();
 				t.parent().children('a').show();
-//					event.preventDefault();
+				//event.preventDefault();
 			});
 			//event.preventDefault();
 			//mmUI.addFuzz();
@@ -728,38 +743,43 @@ mmUI._editableTagsClose = function(id)
 
 			//$(this).show()
 		}
-//*		
 		var addbutt = $('#'+id).prev();
 		$(addbutt).next().remove();
 		$(addbutt).show()
-/*/
+		/*
 		var t = $(this);
 		t.parent().children('input').hide();
 		t.parent().children('a').show();
-/**/		
+		*/		
 		//event.preventDefault();
-			//$(this).html();
+		//$(this).html();
+		fail = false
 	}
-			
-	
+	if (fail) {
+		console.log("WARNING: mmUI._editableTagsClose does not execute")
+	}
 }
 
+// S1E:	Composed method, extract logic to subroutines
+// entry extended view
 mmUI._initializeExtendedItem = function(entryid) {
-	$(".editableinput").focus(function(event,ui){
+	$(".editableinput").focus(function(event,ui) {
 		$(this).after(' <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
 			event.preventDefault();
 			//$(this).html();
 	});
+
 	$('.justnotes').moreLess({
 		//speed:'slow',
 		truncateIndex:300,
-		//callback: function(){alert('done');}
-});
-//*
-	$(".editabletags").click(function(event,ui){
-//				$(this).attr('value','');
+		//callback: function() {alert('done');}
+	});
+
+	$(".editabletags").click(function(event,ui) {
+		//$(this).attr('value','');
 		event.preventDefault();
 		$(this).hide();
+		// S1E:	Ensure proper unique id
 		var id = Math.round(Math.random()*100000);
 		$(this).after('<input id="'+id+'" type="text" class="editableinput" style="margin:0; padding:0">');
 		//$(this).after('<input id="'+id+'" type="text" class="editableinput"><p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
@@ -770,77 +790,80 @@ mmUI._initializeExtendedItem = function(entryid) {
 			source: mmUI.allTags['#']
 		});
 		$('#'+id).focus();
-		$('#'+id).bind( "keydown", function( event ) {
-				//alert('tuki');
-				//return;
-		/*		
-				if ( self.options.disabled ) {
-					return;
-				}
-		*/
-				var keyCode = $.ui.keyCode;
-				switch( event.keyCode ) {
-				case keyCode.TAB:
-				case keyCode.ENTER:
-				case keyCode.NUMPAD_ENTER:
-					var val = $(this).val();
-					var eid = $(this).parents('article')[0].id;
-					var t = $(this);
-					//alert(val);
-					if( !empty(val) ) {
-						mmUI.updateRelationEntryAim(eid,val,false,function(entry){
-							var aims = mmUI._getEntryTagsHTML(entry);
-							//if mmUI.lastAimRequest
-							{
-								mmUI.updateAims();
-							}
-							$('#assigned_tags_'+eid).html(aims);
-							t.parent().children('input').hide();
-							t.parent().children('a').show();
-							event.preventDefault();
-						});
+
+		// S1E:	Extract event handler to named function
+		$('#'+id).bind("keydown", function(event) {
+			//alert('tuki');
+			//return;
+			/*		
+			if (self.options.disabled) {
+				return;
+			}
+			*/
+			var keyCode = $.ui.keyCode;
+			switch(event.keyCode) {
+			case keyCode.TAB:
+			case keyCode.ENTER:
+			case keyCode.NUMPAD_ENTER:
+				var val = $(this).val();
+				var eid = $(this).parents('article')[0].id;
+				var t = $(this);
+				//alert(val);
+				if (!empty(val)) {
+					mmUI.updateRelationEntryAim(eid,val,false, function(entry) {
+						var aims = mmUI._getEntryTagsHTML(entry);
+						//if mmUI.lastAimRequest
+						{
+							mmUI.updateAims();
+						}
+						$('#assigned_tags_'+eid).html(aims);
+						t.parent().children('input').hide();
+						t.parent().children('a').show();
 						event.preventDefault();
-						//mmUI.addFuzz();
-						//$(this).remove();
-						
-						//$(this).show()
-					}
+					});
+					event.preventDefault();
+					//mmUI.addFuzz();
+					//$(this).remove();
 					
-					//$('awesome-bar').submit();
-					// when menu is open or has focus
-		/*			if ( self.menu.element.is( ":visible" ) ) {
-					}*/
-					//passthrough - ENTER and TAB both select the current element
-					break;
+					//$(this).show()
 				}
+				
+				//$('awesome-bar').submit();
+				// when menu is open or has focus
+				/*
+				if (self.menu.element.is(":visible")) {
+				
+				}
+				*/
+				//passthrough - ENTER and TAB both select the current element
+				break;
+			}
 		})
-		$('#'+id).blur(function() {
-		    //mmUI._editableTagsClose(id)
-		    setTimeout('mmUI._editableTagsClose('+id+')',150)// for autocomplete jao:)
-			
-		});
 		
+		$('#'+id).blur(function() {
+			//mmUI._editableTagsClose(id)
+			settimeout('mmui._editabletagsclose('+id+')',150)// for autocomplete jao:)
+		});
 	});
 	
 	$(".editablelocation").editable({
-		onSubmit: function(value,settings){
-			if( value.current == value.previous ) return value;
-/*					
-			if( $.trim(value.current) == '' ) {
+		onSubmit: function(value,settings) {
+			if (value.current == value.previous) return value;
+			/*					
+			if ($.trim(value.current) == '') {
 				return false;
 				value.current = value.previous;
 				return value;
 			}
-/**/					
+			*/					
 			var key = $(this)[0].id;
 			var t = $(this);
 			var eid = $(this).parents('article')[0].id;
 			var t = $(this);
 			//var 
-			mmUI.updateEntryValue(eid, 'at', escapeForHTML(value.current), function(entry){
+			mmUI.updateEntryValue(eid, 'at', escapeForHTML(value.current), function(entry) {
 				//$(this).next().remove();
 				$('#locationhtml-'+entry.id).html(mmUI._getEntryLocationHTML(entry));
-				
 			});
 			//event.preventDefault();
 			return value;
@@ -851,27 +874,28 @@ mmUI._initializeExtendedItem = function(entryid) {
 		cancel: 'CANCEL',
 		type     : "location"
 		//type     : "textarea",
-// 				style  : "inherit"
-	});			
-
-/*			
-	$(".editablelocation").click(function(event,ui){
-//				$(this).attr('value','');
+		//style  : "inherit"
+	});	
+	
+			
+	/*
+	$(".editablelocation").click(function(event,ui) {
+		//$(this).attr('value','');
 		event.preventDefault();
 		$(this).hide();
 		var id = Math.round(Math.random()*100000);
 		$(this).after('<input id="'+id+'" type="text" value="'+$(this).html()+'" class="editableinput">');
 		//$(this).after('<input id="'+id+'" type="text" class="editableinput"><p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-			//$(this).html();
+		//$(this).html();
 		$('#'+id).autocomplete({
 			source: mmUI.allTags['@']
 		});
 		$('#'+id).focus();
-		$('#'+id).bind( "keydown", function( event ) {
+		$('#'+id).bind("keydown", function(event) {
 				//alert('tuki');
 				//return;
 				var keyCode = $.ui.keyCode;
-				switch( event.keyCode ) {
+				switch(event.keyCode) {
 				case keyCode.TAB:
 				case keyCode.ENTER:
 				case keyCode.NUMPAD_ENTER:
@@ -880,15 +904,15 @@ mmUI._initializeExtendedItem = function(entryid) {
 					//passthrough - ENTER and TAB both select the current element
 					break;
 				}
-		}).blur(function(event,ui){
+		}).blur(function(event,ui) {
 			var val = $(this).val();
 			var eid = $(this).parents('article')[0].id;
 			var t = $(this);
 			//t.css('backgroud-color','#ff0000');
 			t.parent().children('input').hide();
 			//alert(val);
-			if( !empty(val) ) {
-				mmUI.updateEntryValue(eid, 'at', val, function(entry){
+			if (!empty(val)) {
+				mmUI.updateEntryValue(eid, 'at', val, function(entry) {
 					//$(this).next().remove();
 					$('#locationhtml-'+entry.id).html(mmUI._getEntryLocationHTML(entry));
 					
@@ -896,20 +920,19 @@ mmUI._initializeExtendedItem = function(entryid) {
 				//event.preventDefault();
 			}
 				
-				//$(this).html();
+			//$(this).html();
 		});;
-		
 	});
-/**/
-	$(".editableshared").click(function(event,ui){
-//				$(this).attr('value','');
+	*/
+
+	$(".editableshared").click(function(event,ui) {
+		//$(this).attr('value','');
 		event.preventDefault();
 		$(this).hide();
 		var id = Math.round(Math.random()*1000000);
 		$(this).after('<input id="'+id+'" type="text" class="editableinput">');
-//				$(this).after('<input id="'+id+'" type="text" class="editableinputadd"><p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-			//$(this).html();
-//*					
+		//$(this).after('<input id="'+id+'" type="text" class="editableinputadd"><p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
+		//$(this).html();					
 		$('#'+id).autocomplete({
 			minLength: 0,
 			delay: 0,
@@ -917,26 +940,26 @@ mmUI._initializeExtendedItem = function(entryid) {
 		});
 		$(this).data('widget',id);
 		$('#'+id).focus();
-		$('#'+id).bind( "keydown", function( event ) {
+		$('#'+id).bind("keydown", function(event) {
 				//alert('tuki');
 				//return;
 				var keyCode = $.ui.keyCode;
-				switch( event.keyCode ) {
-				case keyCode.TAB:
-				case keyCode.ENTER:
-				case keyCode.NUMPAD_ENTER:
-					$(this).blur();
-					return;
-					//passthrough - ENTER and TAB both select the current element
-					break;
+				switch(event.keyCode) {
+					case keyCode.TAB:
+					case keyCode.ENTER:
+					case keyCode.NUMPAD_ENTER:
+						$(this).blur();
+						return;
+						//passthrough - ENTER and TAB both select the current element
+						break;
 				}
-		}).blur(function(event,ui){
+		}).blur(function(event,ui) {
 			var val = $(this).val();
 			var eid = $(this).parents('article')[0].id;
 			var t = $(this);
 			//alert(val);
-			if( !empty(val) ) {
-				mmUI.updateRelationEntryShared(eid,val,false,function(entry){
+			if (!empty(val)) {
+				mmUI.updateRelationEntryShared(eid,val,false, function(entry) {
 					var sh = mmUI._getEntrySharedHTML(entry);
 					$('#assigned_shared_'+eid).html(sh);
 					t.parent().children('input').hide();
@@ -945,7 +968,6 @@ mmUI._initializeExtendedItem = function(entryid) {
 				event.preventDefault();
 				//mmUI.addFuzz();
 				//$(this).remove();
-				
 				//$(this).show()
 			}
 			
@@ -955,23 +977,22 @@ mmUI._initializeExtendedItem = function(entryid) {
 			t.parent().children('input').hide();
 			t.parent().children('a').show();
 			event.preventDefault();
-				//$(this).html();
-		});;
-
-/**/			
+			//$(this).html();
+		});			
 	});
 
-	$(".editableinputadd").focus(function(event,ui){
+	$(".editableinputadd").focus(function(event,ui) {
 		$(this).attr('value','');
 		$(this).html('');
 		$(this).after('<p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
 		event.preventDefault();
-			//$(this).html();
+		//$(this).html();
 	});
-	$(".editableinputadd").blur(function(event,ui){
+
+	$(".editableinputadd").blur(function(event,ui) {
 		$(this).nextAll().remove();
 		event.preventDefault();
-			//$(this).html();
+		//$(this).html();
 	});
 
 	$(".editablesharing").editable({
@@ -980,60 +1001,56 @@ mmUI._initializeExtendedItem = function(entryid) {
 			event.preventDefault();
 			//$(this).html();
 		},
-		onSubmit: function(content){
+		onSubmit: function(content) {
 			var el = $(this).parents('article');
 			var key = $(this)[0].name;
 			//var 
 			//var val = mmUI.updateEntryValue(el[0].id, key,value.current);
-			
 			return val;
 		},
 		submit: 'APPLY',
 		cancel: 'CANCEL',
-		editClass : 'editable',
-									
+		editClass : 'editable',				
 		type     : "text"
-		//type     : "textarea",
-// 				style  : "inherit"
+		//type   : "textarea",
+		//style  : "inherit"
 	});			
-/**/			
+				
 	$(".editableparam").editable({
-		onEdit: function($this,options){
+		onEdit: function($this,options) {
 			//t.find("dd[class='editableparam']").editable('disable');
 			t.toNonEditable($this,true);
 			return false;
-		},
-		
-		onSubmit: function(value,settings){
-			if( value.current == value.previous ) return value;
+		},		
+		onSubmit: function(value,settings) {
+			if (value.current == value.previous) return value;
 			var el = $(this).parents('article');
 			var key = $(this)[0].id;
 			var t = $(this);
 			//var 
-			mmUI.updateEntryValue(el[0].id, key,value.current, function(data){
+			mmUI.updateEntryValue(el[0].id, key,value.current, function(data) {
 				var value = (empty(data['pretty'+key]) ? data[key] : data['pretty'+key]);
 				t.html(value);
 			});
 			
 			return value;
 		},
-		editClass : 'editable',
-									
+		editClass : 'editable',		
 		//submit: 'APPLY',
 		//cancel: 'CANCEL',
 		type     : "text"
 		//type     : "textarea",
-// 				style  : "inherit"
+		//style  : "inherit"
 	});			
 
 	$(".editablenotes").editable({
-		onSubmit: function(value,settings){
-			if( value.current == value.previous ) return value;
+		onSubmit: function(value,settings) {
+			if (value.current == value.previous) return value;
 			var el = $(this).parents('article');
 			var key = $(this)[0].id;
 			var t = $(this);
 			//var 
-			mmUI.updateEntryValue(el[0].id, key,value.current, function(data){
+			mmUI.updateEntryValue(el[0].id, key,value.current, function(data) {
 				var value = (empty(data['pretty'+key]) ? data[key] : data['pretty'+key]);
 				t.html(value);
 			});
@@ -1044,44 +1061,43 @@ mmUI._initializeExtendedItem = function(entryid) {
 									
 		submit: 'APPLY',
 		cancel: 'CANCEL',
-		//type     : "text",
+		//type   : "text",
 		type     : "textarea"
-// 				style  : "inherit"
+		//style  : "inherit"
 	});			
 	
-	$(".editablemouse").editable(function(value,settings){ 
+	$(".editablemouse").editable(function(value,settings)
+		{ 
 			//alert(value);
 			//alert(this.id);
-			
 			return value;
 		},
 		{
-		indicator : "<img src='images/wait.gif'>",
-		//tooltip   : "Doubleclick to edit...",
-		event     : "mouseover",
-		style  : "inherit"
-	});			
+			indicator : "<img src='images/wait.gif'>",
+			//tooltip   : "Doubleclick to edit...",
+			event     : "mouseover",
+			style  : "inherit"
+		}
+	);			
 	
-	
-	$(".editabledrop").editable(function(value,settings){ 
+	$(".editabledrop").editable(function(value,settings)
+		{ 
 			//alert(value);
-			//alert(this.id);
-			
+			//alert(this.id);			
 			return value;
 		},
 		{
-		indicator : "<img src='images/wait.gif'>",
-		//tooltip   : "Doubleclick to edit...",
-		event     : "mouseover",
-		type	: "select",
-		style  : "inherit"
-	});			
-	
-	
-	
+			indicator : "<img src='images/wait.gif'>",
+			//tooltip   : "Doubleclick to edit...",
+			event     : "mouseover",
+			type	: "select",
+			style  : "inherit"
+		}
+	);
 }
-mmUI._constructExtendedItem = function(entry)
-{
+
+// entry extened view
+mmUI._constructExtendedItem = function(entry) {
 	var entrydata = new Array();
 	entrydata["work"] = new Array();
 	entrydata["plan"] = new Array();
@@ -1095,14 +1111,14 @@ mmUI._constructExtendedItem = function(entry)
 	var sourceurl = null;
 	var entrysource = '';
 	
-	if(!empty(entry.source)) {
+	if (!empty(entry.source)) {
 		entrysource = entry.source.name;
 		sourceurl = new String(entry.source.iconimg).toLowerCase();
-		if( !empty(mmUI.img_translator[entry.source.name]) ) sourceurl = mmUI.img_translator[entry.source.name];
+		if (!empty(mmUI.img_translator[entry.source.name])) sourceurl = mmUI.img_translator[entry.source.name];
 		
-		if(entry.source.name == 'Delicious' ) {
+		if (entry.source.name == 'Delicious') {
 			var sections = ['notes', 'aims', 'sharing'];
-		} else if(entry.source.name == 'Facebook' ) {
+		} else if (entry.source.name == 'Facebook') {
 			var sections = ['notes', 'location', 'aims', 'dates', 'sharing'];
 		}
 	}
@@ -1112,28 +1128,29 @@ mmUI._constructExtendedItem = function(entry)
 	entrydata[cur].push('<div class="btn-editabletitle">');
 	entrydata[cur].push('<ul>');
 	entrydata[cur].push('<li><a onclick="mmUI.editEntryTitle('+entry.id+');">edit title</a></li>');
-			entrydata[cur].push('<li>|</li>');
-			entrydata[cur].push('<li><a onclick="mmUI.editEntryTitle('+entry.id+', \''+htmlentities(entry.fuzz)+'\');">edit fuzz</a></li>');
+	entrydata[cur].push('<li>|</li>');
+	entrydata[cur].push('<li><a onclick="mmUI.editEntryTitle('+entry.id+', \''+htmlentities(entry.fuzz)+'\');">edit fuzz</a></li>');
 	entrydata[cur].push('<li>&nbsp;</li>');
 	entrydata[cur].push('<li>&nbsp;</li>');
 	entrydata[cur].push('<li>Created: <time datetime="2010-01-20T20:00+01:00" name="timecreated">'+entry.prettytimecreated+'</time> </li>');
 	entrydata[cur].push('</ul>');
 	entrydata[cur].push('</div>');
 	
-	for(var i in sections ) {
+	for(var i in sections) {
 
-/*
+		/*
 		entrydata[cur].push('					<div class="notes"><p style="font-style:italic">Created: <time datetime="2010-01-20T20:00+01:00" name="timecreated">'+entry.prettytimecreated+'</time> '); 
-		if(!empty(entrysource) && entrysource != 'Middlemachine' && entrysource != 'Google Calendar') entrydata[cur].push(' from <b>'+entrysource+'</b>');
-		if(!empty(entry.source) && !empty(entry.source.text))  entrydata[cur].push(' &nbsp;<span style="background-color:'+entry.source.color+');">&nbsp;&nbsp;&nbsp; </span><b>&nbsp; ('+entry.source.text+')</b>');
+		if (!empty(entrysource) && entrysource != 'Middlemachine' && entrysource != 'Google Calendar') entrydata[cur].push(' from <b>'+entrysource+'</b>');
+		if (!empty(entry.source) && !empty(entry.source.text))  entrydata[cur].push(' &nbsp;<span style="background-color:'+entry.source.color+');">&nbsp;&nbsp;&nbsp; </span><b>&nbsp; ('+entry.source.text+')</b>');
 		entrydata[cur].push('</p></div>'); 
 		*/				
-		if(sections[i] == 'aims') {
+		
+		if (sections[i] == 'aims') {
 			entrydata[cur].push('					<section class="aims"> ');
 			entrydata[cur].push('                    <div class="border"> ');
 			entrydata[cur].push('						<h2 class="location_tag">Aims</h2> ');
 			entrydata[cur].push('                     </div> ');
-//			entrydata[cur].push('							<div id="extendeditem-tags" class="editabletags"> <ul id="assigned_tags_'+entry.id+'"> ');
+			//entrydata[cur].push('							<div id="extendeditem-tags" class="editabletags"> <ul id="assigned_tags_'+entry.id+'"> ');
 			entrydata[cur].push('							<div id="extendeditem-tags"> <ul id="assigned_tags_'+entry.id+'"> ');
 			entrydata[cur].push(mmUI._getEntryTagsHTML(entry));
 			entrydata[cur].push('                        </ul></div>');
@@ -1142,7 +1159,7 @@ mmUI._constructExtendedItem = function(entry)
 			entrydata[cur].push('<div class="notes">');
 			entrydata[cur].push('</div>');
 		}
-		if(sections[i] == 'dates') {
+		if (sections[i] == 'dates') {
 			entrydata[cur].push(' 					<dl class="schedule"> ');
 			entrydata[cur].push('                        <div class="border"> '); 
 			entrydata[cur].push('						<dt>Start</dt> '); 
@@ -1155,7 +1172,7 @@ mmUI._constructExtendedItem = function(entry)
 			entrydata[cur].push('						<dd class="editableparam" id="timeq">'+emptyString(entry.timeq)+'</dd> '); 
 			entrydata[cur].push(' '); 
 			entrydata[cur].push('                    </dl> '); 
-			if(entry.type!='event') {
+			if (entry.type!='event') {
 				entrydata[cur].push('                    <dl class="schedule"> '); 
 				entrydata[cur].push('                    <div class="border"> '); 
 				entrydata[cur].push('						<dt>Deadline</dt> '); 
@@ -1170,7 +1187,7 @@ mmUI._constructExtendedItem = function(entry)
 				entrydata[cur].push('                    </dl> '); 
 			}
 		}
-		if(sections[i] == 'location') {
+		if (sections[i] == 'location') {
 			entrydata[cur].push('                    <div class="border"> ');
 			entrydata[cur].push('                    <h2 class="location">Location</h2>'); 
 			entrydata[cur].push('                    </div>'); 
@@ -1183,46 +1200,45 @@ mmUI._constructExtendedItem = function(entry)
 			entrydata[cur].push(mmUI._getEntryLocationHTML(entry));
 			entrydata[cur].push('</span> '); 
 		}
-		if(sections[i] == 'sharing') {
+		if (sections[i] == 'sharing') {
 			entrydata[cur].push('                 <section class="aims"> ');
 			entrydata[cur].push('                    <div class="border"> ');
 			entrydata[cur].push('						<h2 class="location_share">Sharing</h2> ');
 			entrydata[cur].push('                        </div> ');
 			entrydata[cur].push('						<ul id="assigned_shared_'+entry.id+'"> ');
 			entrydata[cur].push(mmUI._getEntrySharedHTML(entry));
-	/*
+			/*
 			entrydata[cur].push('							<li><div class="share_icon_add"><a href="/"></a></div>Some Name <a href="/" title="Remove">Remove</a></li> ');
 			entrydata[cur].push('							<li><div class="share_icon_move_right"><a href="/"></a></div>Someones Sirname <a href="/" title="Remove">Remove</a></li> ');
 			entrydata[cur].push('							<li><div class="share_icon_move_left"><a href="/"></a></div>Name Name <a href="/" title="Remove">Remove</a></li> ');
-	/**/
+			*/
 			entrydata[cur].push('						</ul>');
 			entrydata[cur].push('					</section> ');
 			entrydata[cur].push('                    <div class="extralink"><a href="" class="editableshared">add</a></div> ');
 		}
-		if(sections[i] == 'notes') {
-
+		if (sections[i] == 'notes') {
 			entrydata[cur].push('					<section class="notes"> ');
-			if( entrysource != 'Facebook' ) {
-			  entrydata[cur].push('                    <div class="border"> ');
-			  entrydata[cur].push('						<h2 class="lasth2">Notes</h2> ');
-			  entrydata[cur].push('                        </div> ');
+			if (entrysource != 'Facebook') {
+				entrydata[cur].push('                    <div class="border"> ');
+				entrydata[cur].push('						<h2 class="lasth2">Notes</h2> ');
+				entrydata[cur].push('                        </div> ');
 			}
 			//entrydata[cur].push('						<h3>Notes</h3>');
-			if( entrysource == 'Facebook' ) entrydata[cur].push('						<div class="facebook-note">');//ffs description ~= note
+			if (entrysource == 'Facebook') entrydata[cur].push('						<div class="facebook-note">');//ffs description ~= note
 			else entrydata[cur].push('						<div class="standout-notes">');//ffs description ~= note
-			if(!empty(entry.image)) {
+			if (!empty(entry.image)) {
 				var imgsrc = '					<img src="'+entry.image+'" align="left" style="margin-right:10px; border: 2px solid black;">';
-				if(!empty(entry.url)) {
-					var enurl = ( entry.url.substr(0,4)=='http' ? entry.url : 'http://'+entry.url );
+				if (!empty(entry.url)) {
+					var enurl = (entry.url.substr(0,4)=='http' ? entry.url : 'http://'+entry.url);
 					imgsrc = '<a href="'+enurl+'" target="_blank">'+imgsrc+'</a>';
 				}
-				entrydata[cur].push( imgsrc);
+				entrydata[cur].push(imgsrc);
 			}
-			if( entrysource == 'Facebook' ) entrydata[cur].push('						<p class="justnotes" id="description">');//ffs description ~= note
+			if (entrysource == 'Facebook') entrydata[cur].push('						<p class="justnotes" id="description">');//ffs description ~= note
 			else entrydata[cur].push('						<p class="editablenotes" id="description">');//ffs description ~= note
-			if(!empty(entry.note)) {
+			if (!empty(entry.note)) {
 				entrydata[cur].push(nl2br(entry.note, false));
-//				entrydata[cur].push(nl2br(htmlentities(entry.note)));
+				//entrydata[cur].push(nl2br(htmlentities(entry.note)));
 			} else entrydata[cur].push('&nbsp;');
 			entrydata[cur].push('</p>');
 			entrydata[cur].push('</div>');
@@ -1236,8 +1252,9 @@ mmUI._constructExtendedItem = function(entry)
 	entrydata[cur].push('					</section>');
 	return entrydata[cur];
 }
-mmUI.generateSubHeadText = function(entry)
-{
+
+// entry subhead view
+mmUI.generateSubHeadText = function(entry) {
 	var undertextSeparator = '&nbsp;';
 	var undertext = "";
 	
@@ -1283,17 +1300,19 @@ mmUI.generateSubHeadText = function(entry)
 		undertext = undertext.substring(undertextSeparator.length, undertext.length);
 	}
 	
-	/**
+	/*
 	if (undertext.indexOf("NaN") != -1) {
 		// BREAKPOINT
-	}*/
+	}
+	*/
 	
 	//-------------------------------------------------------------------//
 	return undertext;
 }
 
-mmUI._constructEntries = function(dataall)
-{
+// S1E: 500 LOC
+// entries view, templates, toggle extended view & drag sort events, update requests
+mmUI._constructEntries = function(dataall) {
 	var aimfilter = mmUI._getCookie('filterbyaims');
 	var contactfilter = mmUI._getCookie('filterbycontacts');
 	var contactfilternames = mmUI._getCookie('filterbycontacts_names');
@@ -1327,16 +1346,16 @@ mmUI._constructEntries = function(dataall)
 		
 	
 	var maxfg = 0;
-	for( i in datatosort ) {
-		if(tempar[datatosort[i].fg]==undefined) tempar[datatosort[i].fg] = new Array();
-		if(datatosort[i].fg!=undefined  && (datatosort[i].fg>maxfg)) maxfg = datatosort[i].fg;
-		//if(empty(datatosort[i].fg)) break;
-		tempar[datatosort[i].fg].push( datatosort[i]);
+	for(i in datatosort) {
+		if (tempar[datatosort[i].fg]==undefined) tempar[datatosort[i].fg] = new Array();
+		if (datatosort[i].fg!=undefined  && (datatosort[i].fg>maxfg)) maxfg = datatosort[i].fg;
+		//if (empty(datatosort[i].fg)) break;
+		tempar[datatosort[i].fg].push(datatosort[i]);
 	}
 	
-	for( i=0; i<=maxfg; i++ ) {//do it manually to set the group order in the view
-		if(empty(tempar[i])) continue;
-		for( it in tempar[i] ) {
+	for(i=0; i<=maxfg; i++) {//do it manually to set the group order in the view
+		if (empty(tempar[i])) continue;
+		for(it in tempar[i]) {
 			data.push(tempar[i][it]);
 		}
 	}
@@ -1348,13 +1367,13 @@ mmUI._constructEntries = function(dataall)
 	
 	var appdata = mmUI.getUIObject('appdata');
 	
-	for( i in data ) {
+	for(i in data) {
 		var entry = data[i];
 		var cur = 'work';
 		
-		if(entry.fg >= 3) {
+		if (entry.fg >= 3) {
 			thingstowork++;
-		} else if(entry.fg>1){
+		} else if (entry.fg>1) {
 			thingstonow++
 			cur = 'now';
 		} else {
@@ -1370,39 +1389,39 @@ mmUI._constructEntries = function(dataall)
 		//entryid = sprintf("%03d",entryidcount);
 		var fgdebug = '';
 		var timing = (entry.over ? 'over' : 'notover');
-		if(empty(entry.timeat)) entry.timeat = (empty(entry.timeq)?'':entry.timeq);
-		//if(empty(entry.timeq)) entry.timeq = entry.timeat; <------- ##david WHAT THE FUCK?!
-		if(empty(entry.at) ) entry.at = {};
-		if(empty(entry.at.name)) entry.at.name = '';
-		if(empty(entry.prettydeadline)) entry.prettydeadline = '';
-		if(empty(entry.timecycle)) entry.timecycle = '';
+		if (empty(entry.timeat)) entry.timeat = (empty(entry.timeq)?'':entry.timeq);
+		//if (empty(entry.timeq)) entry.timeq = entry.timeat; <------- ##david WHAT THE FUCK?!
+		if (empty(entry.at)) entry.at = {};
+		if (empty(entry.at.name)) entry.at.name = '';
+		if (empty(entry.prettydeadline)) entry.prettydeadline = '';
+		if (empty(entry.timecycle)) entry.timecycle = '';
 		
 		var entrysource = null;
-		if(empty(entry.source)) {
+		if (empty(entry.source)) {
 		} else {
-			if(empty(entry.source.name) || entry.source.name.toLowerCase()=='middlemachine') entry.source.iconimg = null;
+			if (empty(entry.source.name) || entry.source.name.toLowerCase()=='middlemachine') entry.source.iconimg = null;
 			entrysource = entry.source.name;
 		}
 		//entry.source = {};
 		
 		var sourceurl = null;
 		
-		if(!empty(entry.source)) {
+		if (!empty(entry.source)) {
 			sourceurl = new String(entry.source.iconimg).toLowerCase();
-			if( !empty(mmUI.img_translator[entry.source.name]) ) sourceurl = mmUI.img_translator[entry.source.name];
+			if (!empty(mmUI.img_translator[entry.source.name])) sourceurl = mmUI.img_translator[entry.source.name];
 		}
 		
 		//fgdebug = entry.fg;
 		fgdebug = entry.fg+' '+entrysource+' '+(Math.round(entry.taskpriority*10)/10);
 		fgdebug = escapeForHTML(entry.text);
-//				fgdebug = entry.id;
+		//fgdebug = entry.id;
 		entrydata[cur].push('			<article class="'+type+' hentry noselect" id="'+entry.id+'">');
 		//entrydata[cur].push('				<div id="statusvalue-'+entry.id+'" style="display:none;">'+entry.fg+'</div>');//yes i know ffs
 		entrydata[cur].push('				<header>');
-		if(!empty(sourceurl) ) entrydata[cur].push('					<div class="subject_img_'+sourceurl+'" style="float:left"></div>');
+		if (!empty(sourceurl)) entrydata[cur].push('					<div class="subject_img_'+sourceurl+'" style="float:left"></div>');
 		entrydata[cur].push('  <div>					<h1 class="entry-title" title="'+fgdebug+'" id="entry-'+entry.id+'">');
 		//entrydata[cur].push('					<a href=""><div class="subject_img_'+sourceurl+'" title="'+fgdebug+'"></div></a>');
-		//entrydata[cur].push('					<a name="#entry-'+entry.id+'"><input type="text" value="'+escapeForHTML( entry.text)+'" title="'+fgdebug+'" " class="editableinputtitle" id="text"></a></h1>');;
+		//entrydata[cur].push('					<a name="#entry-'+entry.id+'"><input type="text" value="'+escapeForHTML(entry.text)+'" title="'+fgdebug+'" " class="editableinputtitle" id="text"></a></h1>');;
 		//entrydata[cur].push('					<a name="#entry-'+entry.id+'">'+entry.id+' <input type="text" value="'+entry.text+' " class="editableinputtitle" id="text"></a></h1>');;
 		//entrydata[cur].push('					<a href="#entry-'+entry.id+'" title="'+escapeForHTML(entry.text)+'" class="editabletitle" id="text" name="text">'+escapeForHTML(entry.text)+'</a></h1>');;
 		entrydata[cur].push('					<a href="#entry-'+entry.id+'" title="'+escapeForHTML(entry.text)+'" id="text" name="text">'+escapeForHTML(entry.text)+'</a>');
@@ -1417,44 +1436,43 @@ mmUI._constructEntries = function(dataall)
 		entrydata[cur].push('				</header>');
 		var entrystatus = appdata[entry.wfid];
 		for (var currentstatus in entrystatus) {
-			if( currentstatus == 'null' || currentstatus == 'Undefined' ) {
+			if (currentstatus == 'null' || currentstatus == 'Undefined') {
 				currentstatuslabel = entry.status.substr(0,1)+entry.status.substr(1).toLowerCase();
 			} else currentstatuslabel = currentstatus;
 			entrydata[cur].push('				<section>');
 			entrydata[cur].push('					<a href="#verify-'+entry.id+'" class="status" title="Change"><em title="'+(currentstatuslabel)+'">'+(currentstatuslabel)+'</em></a>');
 			entrydata[cur].push('					<menu id="verify'+entry.id+'" class="respond">');
 			
-			for( cm in entrystatus[currentstatus] ) {
+			for(cm in entrystatus[currentstatus]) {
 				entrydata[cur].push('						<li'+(empty(entrystatus[currentstatus][cm]['st'])?'':' class="selected"')+'><a name="'+entrystatus[currentstatus][cm].name+'" id="'+entry.id+'">'+entrystatus[currentstatus][cm].name+'</a></li>');
 			}
-//				entrydata[cur].push('						<li class="selected"><a href="/">Maybe</a></li>');
+			//entrydata[cur].push('						<li class="selected"><a href="/">Maybe</a></li>');
 			entrydata[cur].push('					</menu>');
 			entrydata[cur].push('				</section>');
 			break;//omg check for only one
 		}
-/*		entrydata[cur].push('				<footer> '); 
+		
+		/*
+		entrydata[cur].push('				<footer> '); 
 		//entrydata[cur].push('					<a title="Edit" id="timeat" name="timeat" style="font-size:12px">'+emptyString(entry.prettytimeat, 'N/A')+'</a>');
- 		entrydata[cur].push('					<time datetime="2010-01-20T20:00+01:00"><a title="Edit" id="timeat" name="timeat" style="font-size:12px">'+emptyString(entry.prettytimeat, 'N/A')+'</a></time>');
-//				entrydata[cur].push('					<time datetime="2010-01-20T20:00+01:00"><a title="Edit" class="editableinputtitle" name="at" style="font-size:12px">'+(entry.timeat)+'</a></time>');
+		entrydata[cur].push('					<time datetime="2010-01-20T20:00+01:00"><a title="Edit" id="timeat" name="timeat" style="font-size:12px">'+emptyString(entry.prettytimeat, 'N/A')+'</a></time>');
+		//entrydata[cur].push('					<time datetime="2010-01-20T20:00+01:00"><a title="Edit" class="editableinputtitle" name="at" style="font-size:12px">'+(entry.timeat)+'</a></time>');
 		entrydata[cur].push('					<section> '); 
 		entrydata[cur].push('						<time class="published" datetime="2010-01-20T20:00+01:00" pubdate class="editableparam" id="published">15.07.2010</time>');
 		entrydata[cur].push('						<a href="#author" class="include">Author</a> '); 
 		entrydata[cur].push('					</section> '); 
-		entrydata[cur].push('				</footer> '); */
+		entrydata[cur].push('				</footer> ');
+		*/
+		
 		entrydata[cur].push('				<menu class="move"> ');
 		entrydata[cur].push('					<li><a href="/" title="Move up">Up</a></li> '); 
 		entrydata[cur].push('					<li><a href="/" title="Move down">Down</a></li> '); 
 		entrydata[cur].push('				</menu> '); 
 		entrydata[cur].push('				<section id="extendeditem-'+entry.id+'" class="entry-content">');
 		//entrydata[cur].push('				<span id="extendeditem-'+entry.id+'></span>'); 
-
-		
 		//entrydata[cur] = entrydata[cur].concat(mmUI._constructExtendedItem(entry));
-		entrydata[cur].push('				</section> '); 
-		
-		
+		entrydata[cur].push('				</section> ');		
 		entrydata[cur].push('			</article>');
-			
 	}	
 	
 	entrydata["plan"].unshift('		<header class="labeled">\
@@ -1469,7 +1487,7 @@ mmUI._constructEntries = function(dataall)
 		<h3>Things to work on <span>('+thingstowork+'/'+ (dataall.entries.meta.count_work + dataall.entries.meta.others) + ')</span></h3>\
 	</header>');
 	
-	if(thingstonow==0) {
+	if (thingstonow==0) {
 		$('#entries-02').slideUp();
 	}
 
@@ -1477,7 +1495,7 @@ mmUI._constructEntries = function(dataall)
 	$('#entries-02').html(entrydata["now"].join(''));
 	$('#entries-03').html(entrydata["work"].join(''));
 
-	if(thingstonow>0) {
+	if (thingstonow>0) {
 		$('#entries-02').slideDown();
 	}
 
@@ -1488,8 +1506,8 @@ mmUI._constructEntries = function(dataall)
 		effect : "fadeIn"
 	});
 	
-	if( mmUI.getUIParameter('entry_limit') == true  ) {
-		if(dataall.entries.meta.count_current<dataall.entries.meta.count_all ) {
+	if (mmUI.getUIParameter('entry_limit') == true ) {
+		if (dataall.entries.meta.count_current<dataall.entries.meta.count_all) {
 			$('#show-entries').html('Not enough to do? <a href="javascript:mmUI.toggleLimit(\'entry\');">See your complete list.</a>');
 		} else {
 			$('#show-entries').html('');
@@ -1504,71 +1522,76 @@ mmUI._constructEntries = function(dataall)
 	$("#entryitemcount").html('Showing '+dataall.entries.meta.count_current+' / '+dataall.entries.meta.count_all+' items.');
 	
 	var filterhtml = '';
-	if( !empty(aimfilter) ) {
+	if (!empty(aimfilter)) {
 		var s = new String(aimfilter);
 		filterhtml = '#' + s.replace(/;/g,', #');
 	}
 	
 	var contactfilterhtml = '';
-	if( !empty(contactfilter) && !empty(contactfilternames) ) {
+	if (!empty(contactfilter) && !empty(contactfilternames)) {
 		//contacts = contactfilternames.split(';');
 		contacts = '+' + contactfilternames.replace(/;/g,', +')
-		//contactfilterhtml = ' Filtered by <b>'+contacts+'</b> / <a onclick="mmUI._setCookie(\'filterbycontacts\',undefined); mmUI.updateEntries(); mmUI.updateContacts();/**just preselect TODO*/">clear filters</a>';
-		if(filterhtml!='') filterhtml+=', ';
+		//TODO just preselect
+		//contactfilterhtml = ' Filtered by <b>'+contacts+'</b> / <a onclick="mmUI._setCookie(\'filterbycontacts\',undefined); mmUI.updateEntries(); mmUI.updateContacts();">clear filters</a>';
+		if (filterhtml!='') filterhtml+=', ';
 		filterhtml += contacts;
 	}
 	
-	if( !empty(nearlocfilter) ) {
+	if (!empty(nearlocfilter)) {
 		//contacts = contactfilternames.split(';');
 		locs = '@' + nearlocfilternames.replace(/;/g,', @')
-		//contactfilterhtml = ' Filtered by <b>'+contacts+'</b> / <a onclick="mmUI._setCookie(\'filterbycontacts\',undefined); mmUI.updateEntries(); mmUI.updateContacts();/**just preselect TODO*/">clear filters</a>';
-		if(filterhtml!='') filterhtml+=', ';
+		//TODO just preselect
+		//contactfilterhtml = ' Filtered by <b>'+contacts+'</b> / <a onclick="mmUI._setCookie(\'filterbycontacts\',undefined); mmUI.updateEntries(); mmUI.updateContacts();">clear filters</a>';
+		if (filterhtml!='') filterhtml+=', ';
 		filterhtml += locs;
 	}
 	
-	if(filterhtml!='') { filterhtml = 'Filtered by <b>'+filterhtml+'</b> / <a onclick="mmUI.clearSearchFilters();">clear filters</a>';}
+	if (filterhtml!='') { filterhtml = 'Filtered by <b>'+filterhtml+'</b> / <a onclick="mmUI.clearSearchFilters();">clear filters</a>';}
 	
-	if(!empty(fuzz)) {
+	if (!empty(fuzz)) {
 		filterhtml += ' Searching for <b>'+fuzz+'</b> / <a onclick="mmUI._setCookie(\'searchentries\',undefined); mmUI.updateEntries();">clear search</a>';
 	}
-/*			
-	if( !empty(contactfilter) ) {
+
+	/*			
+	if (!empty(contactfilter)) {
 		contacts = contactfilter.split(';');
-		for( var i in contacts ) {
+		for(var i in contacts) {
 			//alert(contacts[i]);
-			for( var it in mmUI.contacts ) {
-				if( mmUI.contacts[it].id == contacts[i] ) {
-					if( contactfilterhtml != '' ) contactfilterhtml += ', ';
+			for(var it in mmUI.contacts) {
+				if (mmUI.contacts[it].id == contacts[i]) {
+					if (contactfilterhtml != '') contactfilterhtml += ', ';
 					contactfilterhtml += mmUI.contacts[it].name;
 				}
 			}
 		}
 		contactfilterhtml = 'Filtered by <b>'+contactfilterhtml+'</b> / <a onclick="mmUI._setCookie(\'filterbycontacts\',undefined); mmUI.updateEntries(); mmUI.updateContacts();">clear filters</a>';
 	}
-*/			
-	if( empty(filterhtml) ) {
+	*/
+				
+	if (empty(filterhtml)) {
 		mmUI.messages['filtered'] = '';
-//		$('#filteredby').fadeOut('fast');
+		//$('#filteredby').fadeOut('fast');
 	} else {
 		mmUI.messages['filtered'] = filterhtml;
 		//$('#filteredby').html(filterhtml).fadeIn('fast');
 	}
+
 	mmUI.updateCurrentRequestInfo();
 
 	// Toggle entries
-	$('section.entries>article>header').click(function(e){
-		//$('section.entries>article>header>h1').mouseup(function(e){
+	$('section.entries>article>header').click(function(e) {
+		//$('section.entries>article>header>h1').mouseup(function(e) {
 		//e.preventDefault();
-		if(dragin == false){
+		if (dragin == false) {
 			var t = $(this).parents('article');
 			var it = t.find("a[id='text']");
 			var ffs = it.data('editable.options');
-			//if( ffs.options == 'enable' ) return;
+			//if (ffs.options == 'enable') return;
 			//return;
-			if( it.children('textarea').length>0 )
-			//if( it[0].innerHTML ) 
+			if (it.children('textarea').length>0)
+			//if (it[0].innerHTML) 
 			{
-			//if( it[0].text == 'APPLYCANCEL' ) {
+			//if (it[0].text == 'APPLYCANCEL') {
 				return;
 				//return;
 			} 
@@ -1579,22 +1602,22 @@ mmUI._constructEntries = function(dataall)
 			var hr = 'entry-'+t.attr('id');
 			var hr = 'extendeditem-'+t.attr('id');
 			var subHeadText = $(this).find('#undertext');
-			/** if on bottom, scroll to it */
+			//if on bottom, scroll to it
 			//alert(hr);
-			$('section.entries>article menu+section:not(#'+hr+')').each(function(){
+			$('section.entries>article menu+section:not(#'+hr+')').each(function() {
 				$(this).hide().parents('article').removeClass('open');
 				//.blur();
 			});
-			//$('.editableinputtitle').each(function(){$(this).blur();});
+			//$('.editableinputtitle').each(function() {$(this).blur();});
 			
 			var entry = mmUI.dataGetEntry(entryid);
 			var opening = false;
-			$('section#'+hr).parents('article').toggleClass('open').end().slideToggle(20,function(){
-				//if(!$(this).hasClass('open')) disableDnD();
+			$('section#'+hr).parents('article').toggleClass('open').end().slideToggle(20, function() {
+				//if (!$(this).hasClass('open')) disableDnD();
 				//else enableDnD();
 				//dragin = false;
-				if(t.hasClass('open')) opening = true;
-				if( opening ) {
+				if (t.hasClass('open')) opening = true;
+				if (opening) {
 					//$('#'+hr).html('poopy');
 					var html = mmUI._constructExtendedItem(entry)
 					$('#'+hr).html(html.join(''));
@@ -1604,43 +1627,45 @@ mmUI._constructEntries = function(dataall)
 					/**/
 					mmUI._initializeExtendedItem();
 					
-					//if(ffs.options == 'disable' ) it.editable('enable');
+					//if (ffs.options == 'disable') it.editable('enable');
 					//$(window).height()
 					/** TODO Borked cause its absolute */
-/*							
+					/*							
 					var scrtop = t.scrollTop();
-					if(t.scrollTop()+400 < t[0].offsetTop)
+					if (t.scrollTop()+400 < t[0].offsetTop)
 					{
 						//alert('scrolling');
 						//$('section#'+hr).scroll();
 						window.scrollTo(0,t[0].offsetTop-4);
 					}
-**/							
+					*/							
 				} else {
 					/* ##drazen: just refresh undertext */
 					subHeadText.show();
 					subHeadText.html(mmUI.generateSubHeadText(entry));
 					
-					if( it.children('textarea').length>0 )
-					//if( it[0].innerHTML ) 
-					{
-					//if( it[0].text == 'APPLYCANCEL' ) {
+					//if (it[0].innerHTML) 
+					//if (it[0].text == 'APPLYCANCEL') {
+
+					if (it.children('textarea').length>0)	{
 						ffs.toNonEditable($this,true);						
 						//return;
 					} 
 					
 					/** TODO go through all editables in article and close them */
-					//if(ffs.options == 'enable' ) it.editable('disable');
+					//if (ffs.options == 'enable') it.editable('disable');
 					//t.find("a[id='text']").editable('disable');
 					//t.children('.editableinputtitle').editable('disable');
 				}
 			});
 		}
 	});
-	
+
+	// S1E: Stray timeout	
 	var c = setTimeout('',1);
-/*			
-	$('a.status').click(function(e){
+
+	/*			
+	$('a.status').click(function(e) {
 		e.preventDefault();
 		var t = $(this);
 		if ($('section.entries a.status').hasClass('locked') == false) t.addClass('locked');
@@ -1649,11 +1674,11 @@ mmUI._constructEntries = function(dataall)
 			if (!m.is(':visible')) {
 				disableDnD();
 				m.fadeIn(200).children('li.selected').removeClass('selected').addClass('mark');
-				m.hover(function(){
+				m.hover(function() {
 					$(this).children('li.selected').removeClass('selected').addClass('mark');
-				},function(){
+				}, function() {
 					$(this).children('li.mark').removeClass('mark').addClass('selected');
-				}).click(function(e){
+				}).click(function(e) {
 					e.preventDefault();
 					e.stopPropagation();
 					m.fadeOut(20);
@@ -1662,15 +1687,17 @@ mmUI._constructEntries = function(dataall)
 					/** tell server what happened * /
 					var status = e.target.name;
 					var id = e.target.id;
-					$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&eid='+id+'&status='+status+'&json_callback=?', function(dataall){
+					$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&eid='+id+'&status='+status+'&json_callback=?', function(dataall) {
 						mmUI.updateEntries();
 					});
 				});
 			}
 		}
 	});
-/**/			
-	$('a.status').mousedown(function(e){
+	*/
+	
+	// status menu and update request
+	$('a.status').mousedown(function(e) {
 		e.preventDefault();
 		var t = $(this);
 		//if (!$('section.entries a.status').hasClass('locked')) t.addClass('locked');
@@ -1681,12 +1708,12 @@ mmUI._constructEntries = function(dataall)
 				$('body').click();
 				disableDnD();
 				m.fadeIn(200).children('li.selected').removeClass('selected').addClass('mark');
-				m.hover(function(){
+				m.hover(function() {
 					m.children('li.selected').removeClass('selected').addClass('mark');
-				},function(){
+				}, function() {
 					$(this).children('li.mark').removeClass('mark').addClass('selected');
-				}).click(function(e){e.preventDefault();});
-				m.mousedown(function(e){
+				}).click(function(e) {e.preventDefault();});
+				m.mousedown(function(e) {
 					/** TOD-O dont just handle the mouseup, the user has to be able to 
 							cancel by clicking somewhere else  -- body click handles closing this*/
 					m.fadeOut(20);
@@ -1695,15 +1722,15 @@ mmUI._constructEntries = function(dataall)
 					/** tell server what happened */
 					var status = e.target.name;
 					var id = e.target.id;
-					//$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&eid='+id+'&status='+status+'&json_callback=?', function(dataall){
-					JSONPCall('entry','&eid='+id+'&status='+status, function(dataall){
+					//$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&eid='+id+'&status='+status+'&json_callback=?', function(dataall) {
+					JSONPCall('entry','&eid='+id+'&status='+status, function(dataall) {
 						//TODO refresh only if entry status changed
 						mmUI.updateEntries();
 					},null,'saving:status change');
 				});
 			}
 		//}
-	}).click(function(e){e.preventDefault();});
+	}).click(function(e) {e.preventDefault();});
 
 	// UI D & D
 	$('section#entries-01,section#entries-02,section#entries-03').sortable({
@@ -1723,12 +1750,12 @@ mmUI._constructEntries = function(dataall)
 		placeholder:'ui-ghost',
 		items:'article',
 		cancel: '.open',
-		start:function(event, ui) {
+		start: function(event, ui) {
 			clearTimeout(t);
 			dragin=true;
 		},
-/*																
-		beforeStop:function(event,ui){
+		/*																
+		beforeStop: function(event,ui) {
 				$(this).sortable('cancel');
 				var id = ui.item[0].id;
 				//id = $(ui.item).id;
@@ -1740,7 +1767,8 @@ mmUI._constructEntries = function(dataall)
 				//var poopy = $(this).toArray();
 				//var fgdropon = $('#statusvalue-'+nextid).html();
 		},
-*/			
+		*/
+					
 		/*DnD solution */
 		//1. ulovis "drag" event za entry div
 		//2. shranis pozicijo / referenco na entry div
@@ -1749,51 +1777,50 @@ mmUI._constructEntries = function(dataall)
 		//			- skrijes ghost
 		//			- premaknes entry na orig. pozicijo
 		//			- pobarvas entry
-		sort:function(event, ui) {
+		sort: function(event, ui) {
 			if (ui.item[0].offsetLeft > (0.9 * ui.item[0].clientWidth)) {
 				ui.item[0].style.opacity = 0;
 			} else {
 				ui.item[0].style.opacity = 0.4;
 			}
 		},
-		stop:function(event,ui){   	  
-			t=setTimeout(function(){
+		stop: function(event,ui) {   	  
+			t=setTimeout(function() {
 				dragin=false;
 				clearTimeout(t);
-				},200);
-				var prev = $(ui.item).prev('section.entries>article');
-				var next = $(ui.item).next('section.entries>article');
-				if( (prev==null) && (next==null) ) {
-					/** redrag to empty sortable TODO */
-					//find section and post to json
-				}
-				/** redrag entry */
-				//$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&redrag=true&eid='+ui.item[0].id+'&id_above='+(prev.length>0 ? prev[0].id: '')+'&id_below='+(next.length>0 ? next[0].id: '')+'&json_callback=?', function(dataall){
-				JSONPCall('entry','&drag=&eid='+ui.item[0].id+'&id_above='+(prev.length>0 ? prev[0].id: '')+'&id_below='+(next.length>0 ? next[0].id: ''), function(dataall){
-					mmUI.updateEntries();
-				},null,'saving:Entry redrag');	
-				
-			},
-		change:function(event,ui){
-				var prev = $(ui.helper).prev('section.entries>article');
-				var next = $(ui.helper).next('section.entries>article');
-				/** DURING SORTING (change color*/
-				var out='';
-				out += 'prev: '+(empty(prev[0])?'':prev[0].id);
-				out += 'next: '+(empty(next[0])?'':next[0].id);
-				if( prev!=null ) {
-					//$(this).c
-				}
-				//$('#printf').html(out);
-			},		
-		update:function(event,ui){
+			},200);
+			var prev = $(ui.item).prev('section.entries>article');
+			var next = $(ui.item).next('section.entries>article');
+			if ((prev==null) && (next==null)) {
+				/** redrag to empty sortable TODO */
+				//find section and post to json
+			}
+			/** redrag entry */
+			//$.getJSON(mmUI.apiurl+'/BTW/entry/'+mmUI.account+'?access_token='+mmUI.access_token+'&redrag=true&eid='+ui.item[0].id+'&id_above='+(prev.length>0 ? prev[0].id: '')+'&id_below='+(next.length>0 ? next[0].id: '')+'&json_callback=?', function(dataall) {
+			JSONPCall('entry','&drag=&eid='+ui.item[0].id+'&id_above='+(prev.length>0 ? prev[0].id: '')+'&id_below='+(next.length>0 ? next[0].id: ''), function(dataall) {
+				mmUI.updateEntries();
+			},null,'saving:Entry redrag');	
+		},
+		change: function(event,ui) {
+			var prev = $(ui.helper).prev('section.entries>article');
+			var next = $(ui.helper).next('section.entries>article');
+			/** DURING SORTING (change color*/
+			var out='';
+			out += 'prev: '+(empty(prev[0])?'':prev[0].id);
+			out += 'next: '+(empty(next[0])?'':next[0].id);
+			if (prev!=null) {
+				//$(this).c
+			}
+			//$('#printf').html(out);
+		},		
+		update: function(event,ui) {
 				var prev = $(ui.item).prev('section.entries>article');
 				var next = $(ui.item).next('section.entries>article');
 				/** DURING SORTING (change color*/
 				var out='final: ';
 				out += 'prev: '+(empty(prev[0])?'':prev[0].id);
 				out += 'next: '+(empty(next[0])?'':next[0].id);
-				if( prev!=null ) {
+				if (prev!=null) {
 					//$(this).c
 				}
 				//$('#printf').html(out);
@@ -1803,117 +1830,118 @@ mmUI._constructEntries = function(dataall)
 	//$('section#entries-01,section#entries-02,section#entries-03').disableSelection();
 	$('section.entries menu,section#aims label').disableSelection();
 
-/*
-	// UI D & D
-	$('section#entries-01,section#entries-02').sortable({handle:'menu',connectWith:'section.entries',placeholder:'ui-ghost'}).droppable({
-	//$('section.entries>article').droppable({
-	drop: function(event, ui) {
-		//ui.draggable.clone();
-		//alert(ui.draggable.context.id);menu
-		
-		alert(ui.draggable);
-		alert(ui.draggable.context);
-		//$(this).addClass('ui-state-highlight').html('Dropped!');
-		
-		return true;
-	}
-	});
-*/			
-
-/*
-	$(".editabletitle").editable({
-		onSubmit: function(value,settings){
-			var el = $(this).parents('article');
-			var key = $(this)[0].name;
-			//var 
-			var val = mmUI.updateEntryValue(el[0].id, key,value.current);
+	/*
+		// UI D & D
+		$('section#entries-01,section#entries-02').sortable({handle:'menu',connectWith:'section.entries',placeholder:'ui-ghost'}).droppable({
+		//$('section.entries>article').droppable({
+		drop: function(event, ui) {
+			//ui.draggable.clone();
+			//alert(ui.draggable.context.id);menu
 			
-			return val;
-		},
-		submit: 'APPLY',
-		cancel: 'CANCEL',
-		editClass : 'editable',
-									
-		type     : "text",
-		//type     : "textarea",
-// 				style  : "inherit"
-	});			
-/**/			
-/*
-	$(".editableinputtitle").focus(function(event,ui){
-		$(this).data("previous", $(this).val());
-		//$(this).after(' <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-		event.preventDefault();
-			//$(this).html();
-	});
-	$(".editableinputtitle").blur(function(event,ui){
-		$(this).nextAll().remove();
-		event.preventDefault();
-		if($(this).val()!=$(this).data("previous")) {
-			var el = $(this).parents('article');
-			var key = $(this)[0].id;
-			var val = $(this).val();
-			//var 
-			mmUI.updateEntryValue(el[0].id, key,val);
+			alert(ui.draggable);
+			alert(ui.draggable.context);
+			//$(this).addClass('ui-state-highlight').html('Dropped!');
+			
+			return true;
 		}
-	});
+		});
+	*/
+	/*
+		$(".editabletitle").editable({
+			onSubmit: function(value,settings) {
+				var el = $(this).parents('article');
+				var key = $(this)[0].name;
+				//var 
+				var val = mmUI.updateEntryValue(el[0].id, key,value.current);
+				
+				return val;
+			},
+			submit: 'APPLY',
+			cancel: 'CANCEL',
+			editClass : 'editable',
+										
+			type     : "text",
+			//type     : "textarea",
+	// 				style  : "inherit"
+		});			
+	*/			
+	/*
+		$(".editableinputtitle").focus(function(event,ui) {
+			$(this).data("previous", $(this).val());
+			//$(this).after(' <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
+			event.preventDefault();
+				//$(this).html();
+		});
+		$(".editableinputtitle").blur(function(event,ui) {
+			$(this).nextAll().remove();
+			event.preventDefault();
+			if ($(this).val()!=$(this).data("previous")) {
+				var el = $(this).parents('article');
+				var key = $(this)[0].id;
+				var val = $(this).val();
+				//var 
+				mmUI.updateEntryValue(el[0].id, key,val);
+			}
+		});
+	*/
+ }
 
-/**/
-}
-
+// entries request
 mmUI.updateEntries = function (entryid, notused, fuzz) {
 	var aimfilter = mmUI._getCookie('filterbyaims');
-	var includeaims = ( empty(aimfilter) ? '':'&_EfA='+aimfilter );
+	var includeaims = (empty(aimfilter) ? '':'&_EfA='+aimfilter);
 	
 	var contactfilter = mmUI._getCookie('filterbycontacts');
 	var contactfilternames = mmUI._getCookie('filterbycontacts_names');
-	var includecontacts = ( empty(contactfilter) ? '':'&_EfC='+contactfilter );
+	var includecontacts = (empty(contactfilter) ? '':'&_EfC='+contactfilter);
 	var nearlocfilter = mmUI._getCookie('filterbynearlocs');
 	var nearlocfilternames = mmUI._getCookie('filterbynearlocs_names');
-	var includenearlocs = ( empty(nearlocfilter) ? '':'&_EfP='+nearlocfilter );
+	var includenearlocs = (empty(nearlocfilter) ? '':'&_EfP='+nearlocfilter);
 	
 	var filter = includeaims+includecontacts+includenearlocs;
-	//if(filter!='') filter+='&filter=true';
+	//if (filter!='') filter+='&filter=true';
 	//mmUI._setCookie('filterbyaims',include);
-	var limitreq = ( mmUI.getUIParameter('entry_limit') == true ? '' : '&_El=off' );
+	var limitreq = (mmUI.getUIParameter('entry_limit') == true ? '' : '&_El=off');
 	var calltype = 'entries';
 	var fuzztext = '';
 	var fuzz = mmUI._getCookie('searchentries');
-	if(!empty(fuzz)) {
+	if (!empty(fuzz)) {
 		//calltype = 'search';
 		fuzztext = '&_Es='+encodeURIComponent(fuzz);
 	}
-// 	$.getJSON(mmUI.apiurl+'/BTW/'+calltype+'/'+mmUI.account+'?access_token='+mmUI.access_token+fuzztext+filter+limitreq+'&json_callback=?', function(dataall){
-	JSONPCall(calltype,fuzztext+filter+limitreq, function(dataall){
- 			mmUI.requestCache['entries'] = {};
- 			for( var ei in dataall.entries.items ) {
+	// 	$.getJSON(mmUI.apiurl+'/BTW/'+calltype+'/'+mmUI.account+'?access_token='+mmUI.access_token+fuzztext+filter+limitreq+'&json_callback=?', function(dataall) {
+	JSONPCall(calltype, fuzztext+filter+limitreq, function(dataall) {
+			mmUI.requestCache['entries'] = {};
+			for(var ei in dataall.entries.items) {
 					mmUI.requestCache['entries'][dataall.entries.items[ei].id] = dataall.entries.items[ei];
 			}
 			mmUI._constructEntries(dataall);
 	//		alert(dataall.entries.meta.count);
 		},null,'loading:entries'
 	);
-}
+ }
 
-mmUI.dataGetEntry = function(id)
-{
-	if(empty(mmUI.requestCache['entries'])) return null;
-	if(empty(mmUI.requestCache['entries'][id])) return null;
+// entry persistence
+mmUI.dataGetEntry = function(id) {
+	if (empty(mmUI.requestCache['entries'])) return null;
+	if (empty(mmUI.requestCache['entries'][id])) return null;
 	var entry = mmUI.requestCache['entries'][id];
 	return entry;
 }
+
+// entry persistence
 mmUI.dataUpdateEntry = function(entry) {
 	mmUI.requestCache['entries'][entry.id] = entry;
 }
 
-mmUI.updateRelationEntryAim = function(eid, aid, removerelation, func)
-{
+// entry aim update request, view callback
+mmUI.updateRelationEntryAim = function(eid, aid, removerelation, func) {
 	var deletereq = (removerelation!=true ? '&aim=add' : '&aim=delete')
-	//$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+'&eid='+eid+'&aid='+encodeURIComponent(aid)+deletereq+'&json_callback=?', function(dataall){
-	JSONPCall('entry','&eid='+eid+'&aid='+encodeURIComponent(aid)+deletereq, function(dataall){
-		if(empty(dataall.id)) return;
+	//$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+'&eid='+eid+'&aid='+encodeURIComponent(aid)+deletereq+'&json_callback=?', function(dataall) {
+	JSONPCall('entry','&eid='+eid+'&aid='+encodeURIComponent(aid)+deletereq, function(dataall) {
+		if (empty(dataall.id)) return;
 		mmUI.dataUpdateEntry(dataall);
-		if(!empty(func) ) {
+		if (!empty(func)) {
 			func(dataall);
 		} else {
 			var sh = mmUI._getEntryTagsHTML(dataall);
@@ -1921,14 +1949,15 @@ mmUI.updateRelationEntryAim = function(eid, aid, removerelation, func)
 		}
 	},null,'saving:entry -> aim relation');	
 }
-mmUI.updateRelationEntryShared = function(eid, value, removerelation, func)
-{
+
+// entry shared update request, view callback
+mmUI.updateRelationEntryShared = function(eid, value, removerelation, func) {
 	var reqtype = (removerelation==true ? '&share=delete' : '&share=add');
-//	$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+reqtype+'&eid='+eid+'&email='+value+'&json_callback=?', function(dataall){
-	JSONPCall('entry',reqtype+'&eid='+eid+'&email='+value, function(dataall){
-		if(empty(dataall.id)) return;
+	//	$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+reqtype+'&eid='+eid+'&email='+value+'&json_callback=?', function(dataall) {
+	JSONPCall('entry',reqtype+'&eid='+eid+'&email='+value, function(dataall) {
+		if (empty(dataall.id)) return;
 		mmUI.dataUpdateEntry(dataall);
-		if(!empty(func) ) {
+		if (!empty(func)) {
 			func(dataall);
 		} else {
 			var sh = mmUI._getEntrySharedHTML(dataall);
@@ -1936,13 +1965,14 @@ mmUI.updateRelationEntryShared = function(eid, value, removerelation, func)
 		}
 		//mmUI.updateEntries();
 	},null,'saving:entry -> contact relation');	
-}
+ }
 
+// S1E: huge inline callback, should be extracted as named function
 mmUI.updateAims = function() {
-	var limitreq = ( mmUI.getUIParameter('aim_limit') == true ? '&limit=7' : '' );
+	var limitreq = (mmUI.getUIParameter('aim_limit') == true ? '&limit=7' : '');
 	var aimPriorities = new Array();
 	var staticaims = {
-/*		'to-do':0.6, */
+		/*		'to-do':0.6, */
 		'quick tasks':0.6, 
 		'to read':-0.3, 
 		'events':0.1, 
@@ -1953,496 +1983,492 @@ mmUI.updateAims = function() {
 		//'last.fm':1, 
 	};
 	var pinned = '';
-	for( var staticaim in staticaims ) {
+	for(var staticaim in staticaims) {
 		pinned += staticaim+';';
 	}	
 	var aimfilter = mmUI._getCookie('filterbyaims');
-	var includeaims = (!empty(aimfilter) ? aimfilter.split(';') : null );
+	var includeaims = (!empty(aimfilter) ? aimfilter.split(';') : null);
 	
-// 	$.getJSON(this.apiurl+'/BTW/aims/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall){
-	JSONPCall('aims',limitreq+'&pinned='+encodeURIComponent(pinned), function(dataall){
-			//alert(dataall[0]);
-			//var data = dataall['aims'];
-			var aimid = 1;
-			
-			var datarest = [];
-			var data = [];
-			for( i in dataall['aims'] ) {
-				if(staticaims[dataall['aims'][i].id]!=undefined) {
-					staticaims[dataall['aims'][i].id] = dataall['aims'][i];
-				} else {
-					datarest.push(dataall['aims'][i]);
-				}
-			}
-			for( var staticaim in staticaims ) {
-				if(typeof(staticaims[staticaim])!='object') {
-					var label = (staticaim.substr(0,1).toUpperCase())+staticaim.substr(1);
-					var construc = {'id':staticaim,'name':label,'count':0, 'priority':staticaims[staticaim]};
-					data.push(construc);
-				} else {
-					staticaims[staticaim].name = (staticaim.substr(0,1).toUpperCase())+staticaim.substr(1);
-					data.push(staticaims[staticaim]);
-				}
-			}
-			data = data.concat(datarest);
-			//mmUI.lastAimRequest = data;
-/*			
-			for( var staticaim in staticaims ) 
-			{
-				var sta = '';
-				sta += '				<li id="'+staticaim+'" class="custom"> '; 
-				sta += '					<="'+staticaim+'-range">'+(staticaim.substr(0,1).toUpperCase())+staticaim.substr(1)+' <span>('+staticaims[staticaim].count+')</span></label> '; 
-				sta += '					<div class="slider" id="'+staticaim+'"> '; 
-				sta += '						<a href="#'+staticaim+'-range" style="width:80%;">&nbsp;</a> '; 
-				sta += '					</div> '; 
-				sta += '					<input type="range" id="'+staticaim+'-range" name="'+staticaim+'-range" min="0" max="10" value="'+staticaims[staticaim]+'"> '; 
-				 '				</li> '; 
-				;
-				passed_hentry += sta;
-			}
-*/		
-//*	
-			var htmldata = [];
-			var line = 0;
-			htmldata[line++] = '<ul id="aimul">';
-			for( i in data ) {
-				var entrysource = data[i].id.toLowerCase().replace('.','_').replace(' ','-');
-				htmldata[line++] = '<li id="'+entrysource+'_aims" name="'+entrysource+'" class="custom">	<label for="to-do'+aimid+'-range">'+data[i].name+' <span>('+data[i].count+')</span></label>\
-				<div class="slider" id="'+data[i].id+'_aims" name="'+data[i].id+'">	<a href="#to-do'+aimid+'-range" style="width:80%;">&nbsp;</a>	</div>\
-				<input type="range" id="to-do'+aimid+'-range" name="to-do'+aimid+'-range" min="0" max="40" value="'+Math.round((parseFloat(data[i].priority)+1)*20)+'"></li>';
-				aimid++;
-			}
-			htmldata[line++] = '</ul>';
+	//$.getJSON(this.apiurl+'/BTW/aims/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall) {
+	JSONPCall('aims',limitreq+'&pinned='+encodeURIComponent(pinned), function(dataall) {
+		//alert(dataall[0]);
+		//var data = dataall['aims'];
+		var aimid = 1;
+		
+		var datarest = [];
+		var data = [];
 
-			$('#aim_part').html(htmldata.join(''));	
-
-			var el = $('#show-aims');
-			if( mmUI.getUIParameter('aim_limit') == true ) {
-				var more = '';
-				var manymore = dataall.meta.count_all - dataall.meta.count_current;
-				if( manymore>0 ) {
-					more = 'Show more';// ('+manymore+' more)';				
-					el.html('<a href="javascript:mmUI.toggleLimit(\'aim\');">'+(more)+'</a>');
-				} else {
-					el.html('');
-				}
+		for(i in dataall['aims']) {
+			if (staticaims[dataall['aims'][i].id]!=undefined) {
+				staticaims[dataall['aims'][i].id] = dataall['aims'][i];
 			} else {
-				el.html('<a href="javascript:mmUI.toggleLimit(\'aim\');">Show top aims</a>');
+				datarest.push(dataall['aims'][i]);
 			}
-			
- 			//$('section#aims ul').sortable({handle:'label'});
-//			$('section#aims ul>li').draggable({revert: true});
+		}
 
-			/** preselect aims at reload */
-			if(!empty(includeaims)) {
-				var t = $('section#aims ul#aimul>li');
-				var u = t.parents('ul');
-				//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				//else 
-				u.addClass('selecting');
-				
-				for (var aim in includeaims) {
-					//EX##dr: var el = $('section#aims ul#aimul>li[id='+includeaims[aim]+']');
-					var el = $('section#aims ul#aimul>li[name='+includeaims[aim]+']');
-					$(el).addClass('active');
-/*					if (!t.hasClass('active')) {
-						t.addClass('active');
-					} else t.removeClass('active');
-					
-					var include = '';
-					var poopy = u.children('.active').each(function(index){
-						if(include!='') include += ';'
-						include += $(this).attr('id');
-					});
-					*/
-					//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				
-				}
+		for(var staticaim in staticaims) {
+			if (typeof(staticaims[staticaim])!='object') {
+				var label = (staticaim.substr(0,1).toUpperCase())+staticaim.substr(1);
+				var construc = {'id':staticaim,'name':label,'count':0, 'priority':staticaims[staticaim]};
+				data.push(construc);
+			} else {
+				staticaims[staticaim].name = (staticaim.substr(0,1).toUpperCase())+staticaim.substr(1);
+				data.push(staticaims[staticaim]);
 			}
+		}
+		data = data.concat(datarest);
+		//mmUI.lastAimRequest = data;
+		/*			
+					for(var staticaim in staticaims) 
+					{
+						var sta = '';
+						sta += '				<li id="'+staticaim+'" class="custom"> '; 
+						sta += '					<="'+staticaim+'-range">'+(staticaim.substr(0,1).toUpperCase())+staticaim.substr(1)+' <span>('+staticaims[staticaim].count+')</span></label> '; 
+						sta += '					<div class="slider" id="'+staticaim+'"> '; 
+						sta += '						<a href="#'+staticaim+'-range" style="width:80%;">&nbsp;</a> '; 
+						sta += '					</div> '; 
+						sta += '					<input type="range" id="'+staticaim+'-range" name="'+staticaim+'-range" min="0" max="10" value="'+staticaims[staticaim]+'"> '; 
+						 '				</li> '; 
+						;
+						passed_hentry += sta;
+					}
+		*/		
+
+		var htmldata = [];
+		var line = 0;
+		htmldata[line++] = '<ul id="aimul">';
+		for(i in data) {
+			var entrysource = data[i].id.toLowerCase().replace('.','_').replace(' ','-');
+			htmldata[line++] = '<li id="'+entrysource+'_aims" name="'+entrysource+'" class="custom">	<label for="to-do'+aimid+'-range">'+data[i].name+' <span>('+data[i].count+')</span></label>\
+			<div class="slider" id="'+data[i].id+'_aims" name="'+data[i].id+'">	<a href="#to-do'+aimid+'-range" style="width:80%;">&nbsp;</a>	</div>\
+			<input type="range" id="to-do'+aimid+'-range" name="to-do'+aimid+'-range" min="0" max="40" value="'+Math.round((parseFloat(data[i].priority)+1)*20)+'"></li>';
+			aimid++;
+		}
+		htmldata[line++] = '</ul>';
+
+		$('#aim_part').html(htmldata.join(''));	
+
+		var el = $('#show-aims');
+		if (mmUI.getUIParameter('aim_limit') == true) {
+			var more = '';
+			var manymore = dataall.meta.count_all - dataall.meta.count_current;
+			if (manymore>0) {
+				more = 'Show more';// ('+manymore+' more)';				
+				el.html('<a href="javascript:mmUI.toggleLimit(\'aim\');">'+(more)+'</a>');
+			} else {
+				el.html('');
+			}
+		} else {
+			el.html('<a href="javascript:mmUI.toggleLimit(\'aim\');">Show top aims</a>');
+		}
+		
+			//$('section#aims ul').sortable({handle:'label'});
+		//$('section#aims ul>li').draggable({revert: true});
+
+		/** preselect aims at reload */
+		if (!empty(includeaims)) {
+			var t = $('section#aims ul#aimul>li');
+			var u = t.parents('ul');
+			//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+			//else 
+			u.addClass('selecting');
 			
-			// Select aims
-			$('section#aims ul#aimul>li>label').click(function(e){
-				e.preventDefault();
-				var t = $(this).parents('li');
-				var u = t.parents('ul');
-				if(!u.hasClass('selecting')) u.addClass('selecting');
+			for (var aim in includeaims) {
+				//EX##dr: var el = $('section#aims ul#aimul>li[id='+includeaims[aim]+']');
+				var el = $('section#aims ul#aimul>li[name='+includeaims[aim]+']');
+				$(el).addClass('active');
+				/*
 				if (!t.hasClass('active')) {
 					t.addClass('active');
 				} else t.removeClass('active');
 				
 				var include = '';
-				var poopy = u.children('.active').each(function(index){
-					if(include!='') include += ';'
-					//EX##dr: include += $(this).attr('title');
-					include += $(this).attr('name');
+				var poopy = u.children('.active').each(function(index) {
+					if (include!='') include += ';'
+					include += $(this).attr('id');
 				});
-				//alert(include);
-				mmUI._setCookie('filterbyaims',include);
-				mmUI.updateEntries();
-				
-				if(!u.children('li').hasClass('active')) u.removeClass('selecting');
+				*/
+				//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+			
+			}
+		}
+		
+		// Select aims
+		$('section#aims ul#aimul>li>label').click(function(e) {
+			e.preventDefault();
+			var t = $(this).parents('li');
+			var u = t.parents('ul');
+			if (!u.hasClass('selecting')) u.addClass('selecting');
+			if (!t.hasClass('active')) {
+				t.addClass('active');
+			} else t.removeClass('active');
+			
+			var include = '';
+			var poopy = u.children('.active').each(function(index) {
+				if (include!='') include += ';'
+				//EX##dr: include += $(this).attr('title');
+				include += $(this).attr('name');
 			});
-	
-			// D & D entry -> aim
-			$('section#aims ul>li').droppable({
-				hoverClass: 'ui-state-dropp',
-				over:function(event, ui) {
-					ui.draggable[0].style.left = ui.draggable[0].nextSibling.offsetLeft;
-					ui.draggable[0].style.top = ui.draggable[0].nextSibling.offsetTop;
+			//alert(include);
+			mmUI._setCookie('filterbyaims',include);
+			mmUI.updateEntries();
+			
+			if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+		});
+
+		// D & D entry -> aim
+		$('section#aims ul>li').droppable({
+			hoverClass: 'ui-state-dropp',
+			over: function(event, ui) {
+				ui.draggable[0].style.left = ui.draggable[0].nextSibling.offsetLeft;
+				ui.draggable[0].style.top = ui.draggable[0].nextSibling.offsetTop;
+			},
+			drop: function(event,ui) {
+				var eid = ui.draggable[0].id;
+				//EX ##dr: var aid = this.id;
+				var aid = this.getAttribute('name');
+			
+				//var aid = $(this).attributes[0].value;
+				if (mmUI.debug>0) console.log('ajax call');
+
+				mmUI.updateRelationEntryAim(eid,aid);
+				mmUI.updateAims();//changed count... maybe update just the aim?
+			}
+		});
+		
+		//$('section#aims ul').selectable();
+
+		//##dr: OLD REQUEST
+		// UI Slider
+		/*$('div.slider').each(function() {
+			var t = $(this);
+			var i = t.parents('li').find('input');
+			
+			t.slider({
+				range:'min',
+				value:i.val(),
+				min:0,
+				max:40,
+				change: function(event,ui) {
+					i.val(ui.value);				
+					//alert(this.id);
+					//EX ##dr: mmUI.updateAimPriority(this.id, ui.value);
+					mmUI.updateAimPriority($(this).attr('name'), ui.value);
+				}
+			})
+		}); */
+		
+		//NEW
+		$('div.slider').each(function() {
+			var t = $(this);
+			var i = t.parents('li').find('input');
+			var timer = 0;
+			doTimer = function() {
+				clearTimeout(timer);
+				timer = setTimeout("mmUI.updateAimPriorities()", 2000);
+			}
+			t.slider({
+				range:'min',
+				value:i.val(),
+				min:0,
+				max:40,
+				start: function(event, ui) {
+					doTimer();
 				},
-				drop:function(event,ui){
-					var eid = ui.draggable[0].id;
-					//EX ##dr: var aid = this.id;
-					var aid = this.getAttribute('name');
-				
-					//var aid = $(this).attributes[0].value;
-					if(mmUI.debug>0) console.log('ajax call');
-
-					mmUI.updateRelationEntryAim(eid,aid);
-					mmUI.updateAims();//changed count... maybe update just the aim?
-				}
-			});
-			
-			//$('section#aims ul').selectable();
-
-			//##dr: OLD REQUEST
-			// UI Slider
-			/*$('div.slider').each(function(){
-				var t = $(this);
-				var i = t.parents('li').find('input');
-				
-				t.slider({
-					range:'min',
-					value:i.val(),
-					min:0,
-					max:40,
-					change:function(event,ui){
-						i.val(ui.value);				
-						//alert(this.id);
-						//EX ##dr: mmUI.updateAimPriority(this.id, ui.value);
-						mmUI.updateAimPriority($(this).attr('name'), ui.value);
-					}
-				})
-			}); */
-			
-			//NEW
-			$('div.slider').each(function(){
-				var t = $(this);
-				var i = t.parents('li').find('input');
-				var timer = 0;
-				doTimer = function() {
-					clearTimeout(timer);
-					timer = setTimeout("mmUI.updateAimPriorities()", 2000);
-				}
-				t.slider({
-					range:'min',
-					value:i.val(),
-					min:0,
-					max:40,
-					start:function(event, ui){
-						doTimer();
-					},
-					change:function(event, ui){
-						i.val(ui.value);
-						var id = $(this).attr('name');
-						var value = ((ui.value/20)-1);
-						
-						aimPriorities[id] = value;
-						//aimPriorities.push( {"id":id, "value":value} );
-					}
-				})
-				
-				/*##dr: NEW example for updating aims priority - can change more aims */
-				mmUI.updateAimPriorities = function() {
-					var priorities = '';
+				change: function(event, ui) {
+					i.val(ui.value);
+					var id = $(this).attr('name');
+					var value = ((ui.value/20)-1);
 					
-					for (id in aimPriorities) {
-						priorities += id + ':' + aimPriorities[id] + ';';
-					}
-					
-					priorities = priorities.substring(0, priorities.length-1);
-					// 	$.getJSON(this.apiurl+'/BTW/aims/'+this.account+'?access_token='+this.access_token+limitreq+'&priorities='+priorities+'&json_callback=?', function(dataall){
-					JSONPCall('aim','&priorities='+priorities, function(dataall) {
+					aimPriorities[id] = value;
+					//aimPriorities.push({"id":id, "value":value});
+				}
+			})
+			
+			// S1E:	mmUI.updateAimPriorities gets redefined on every call to mmUI.updateAims
+
+			/*##dr: NEW example for updating aims priority - can change more aims */
+			mmUI.updateAimPriorities = function() {
+				var priorities = '';
+				
+				for (id in aimPriorities) {
+					priorities += id + ':' + aimPriorities[id] + ';';
+				}
+				
+				priorities = priorities.substring(0, priorities.length-1);
+				// 	$.getJSON(this.apiurl+'/BTW/aims/'+this.account+'?access_token='+this.access_token+limitreq+'&priorities='+priorities+'&json_callback=?', function(dataall) {
+				JSONPCall('aim','&priorities='+priorities, function(dataall) {
 						aimPriorities = new Array();
 						mmUI.updateEntries();
-						},null,'saving:aim priority'
-					);
-				}
-			});
-			
-			$(".editablenewaim").editable(function(value,settings){ 
-					//alert(value);
-					//alert(this.id);
-					
-					return value;
-				},
-				{
+					},
+					null, 'saving:aim priority'
+				);
+			}
+		});
+		
+		$(".editablenewaim").editable(function(value,settings) { 
+				//alert(value);
+				//alert(this.id);
+				return value;
+			},
+			{
 				indicator : "<img src='images/wait.gif'>",
 				//tooltip   : "Doubleclick to edit...",
 				event     : "click",
 				type	: "select",
- 				style  : "inherit"
-			});
-		},null,'loading:aims'
-	);
+				style  : "inherit"
+			}
+		);
+	}, null, 'loading:aims');
 }
 
 /*##dr: OLD example for updating aim priority - just for one aim */
 /*mmUI.updateAimPriority = function(id, value) {
-//	$.getJSON(this.apiurl+'/BTW/aim/'+this.account+'?access_token='+this.access_token+'&json_callback=?&aid='+id+'&val='+((value/5)-1)+'', function(dataall){
-	JSONPCall('aim','&aid='+id+'&val='+((value/20)-1), function(dataall){
+//	$.getJSON(this.apiurl+'/BTW/aim/'+this.account+'?access_token='+this.access_token+'&json_callback=?&aid='+id+'&val='+((value/5)-1)+'', function(dataall) {
+	JSONPCall('aim','&aid='+id+'&val='+((value/20)-1), function(dataall) {
 			//this.updateEntries(dataall['entries']);
 			mmUI.updateEntries();
-		},null,'saving:aim priority'
+		}, null, 'saving:aim priority'
 	);
 }*/
 
+// contacts get request, view callback
 mmUI.updateContacts = function() {
-	var limitreq = ( mmUI.getUIParameter('contact_limit') == true ? '&limit=10' : '' );
+	var limitreq = (mmUI.getUIParameter('contact_limit') == true ? '&limit=10' : '');
 	var pinned = '';
 	
 	var contactfilter = mmUI._getCookie('filterbycontacts');
-	var includecontacts = (!empty(contactfilter) ? contactfilter.split(';') : null );
+	var includecontacts = (!empty(contactfilter) ? contactfilter.split(';') : null);
 	
-//	$.getJSON(this.apiurl+'/BTW/contacts/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall){
-	JSONPCall('contacts',limitreq+'&pinned='+encodeURIComponent(pinned), function(dataall){
-			//alert(dataall[0]);
-			var data = dataall['cts'];
-			mmUI.contacts = data;
-			var htmldata = [];
-			var line = 0;
-			var found = false;
-			htmldata[line++] = '<ul id="contul">';
-			for( i in data ) {
-				var entrysource = data[i].id;
-				var priority =5; //data[i].priority
-				htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customcontacts"><label style="width:220px">'+data[i].name+' <span>('+data[i].count+')</span></label></li>';
-				if(data[i].name == 'bugs@middlemachine.com' ) found = true;
-			}
-			if(!found) htmldata[line++] = '<li id="bugs@middlemachine.com" name="bugs@middlemachine.com" class="customcontacts"><label>'+'bugs@middlemachine.com'+' </label></li>';
-			htmldata[line++] = '</ul>';
+	//$.getJSON(this.apiurl+'/BTW/contacts/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall) {
+	JSONPCall('contacts',limitreq+'&pinned='+encodeURIComponent(pinned), function(dataall) {
+		//alert(dataall[0]);
+		var data = dataall['cts'];
+		mmUI.contacts = data;
+		var htmldata = [];
+		var line = 0;
+		var found = false;
+		htmldata[line++] = '<ul id="contul">';
+		for(i in data) {
+			var entrysource = data[i].id;
+			var priority =5; //data[i].priority
+			htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customcontacts"><label style="width:220px">'+data[i].name+' <span>('+data[i].count+')</span></label></li>';
+			if (data[i].name == 'bugs@middlemachine.com') found = true;
+		}
+		if (!found) htmldata[line++] = '<li id="bugs@middlemachine.com" name="bugs@middlemachine.com" class="customcontacts"><label>'+'bugs@middlemachine.com'+' </label></li>';
+		htmldata[line++] = '</ul>';
 
-			$('#contacts_part').html(htmldata.join(''));	
-			
-			var el = $('#show-contacts');
-			if( mmUI.getUIParameter('contact_limit') == true ) {
-				var more = '';
-				var manymore = dataall.meta.count_all - dataall.meta.count_current;
-				if( manymore>0 ) {
-					more = 'Show more';// ('+manymore+' more)';				
-					el.html('<a href="javascript:mmUI.toggleLimit(\'contact\');">'+(more)+'</a>');
-				} else {
-					el.html('');
-				}
+		$('#contacts_part').html(htmldata.join(''));	
+		
+		var el = $('#show-contacts');
+		if (mmUI.getUIParameter('contact_limit') == true) {
+			var more = '';
+			var manymore = dataall.meta.count_all - dataall.meta.count_current;
+			if (manymore>0) {
+				more = 'Show more';// ('+manymore+' more)';				
+				el.html('<a href="javascript:mmUI.toggleLimit(\'contact\');">'+(more)+'</a>');
 			} else {
-				el.html('<a href="javascript:mmUI.toggleLimit(\'contact\');">Show top contacts</a>');
+				el.html('');
 			}
-/**/
+		} else {
+			el.html('<a href="javascript:mmUI.toggleLimit(\'contact\');">Show top contacts</a>');
+		}
 
-			/** preselect contacts at reload */
-			if(!empty(includecontacts)) {
-				var t = $('section#aims ul#contul>li');
-				var u = t.parents('ul');
-				//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				//else 
-				u.addClass('selecting');
-				
-				for (var aim in includecontacts) {
-					var el = $('ul#contul>li[id='+includecontacts[aim]+']');
-					$(el).addClass('active');
-/*					if (!t.hasClass('active')) {
-						t.addClass('active');
-					} else t.removeClass('active');
-					
-					var include = '';
-					var poopy = u.children('.active').each(function(index){
-						if(include!='') include += ';'
-						include += $(this).attr('id');
-					});
-					*/
-					//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				
-				}
-			}
+		/** preselect contacts at reload */
+		if (!empty(includecontacts)) {
+			var t = $('section#aims ul#contul>li');
+			var u = t.parents('ul');
+			//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+			//else 
+			u.addClass('selecting');
 			
-			// Select contacts
-			$('section#aims ul#contul>li>label').click(function(e){
-				e.preventDefault();
-				var t = $(this).parents('li');
-				var u = t.parents('ul');
-				if(!u.hasClass('selecting')) u.addClass('selecting');
+			for (var aim in includecontacts) {
+				var el = $('ul#contul>li[id='+includecontacts[aim]+']');
+				$(el).addClass('active');
+				/*
 				if (!t.hasClass('active')) {
 					t.addClass('active');
 				} else t.removeClass('active');
 				
 				var include = '';
-				var includenames = '';
-				var poopy = u.children('.active').each(function(index){
-					if(include!='') include += ';'
+				var poopy = u.children('.active').each(function(index) {
+					if (include!='') include += ';'
 					include += $(this).attr('id');
 				});
-				var contactfilternames = u.children('.active').each(function(index){
-					if(includenames!='') includenames += ';'
-					includenames += $(this).attr('name');
-				});
-				//alert(include);
-				mmUI._setCookie('filterbycontacts',include);
-				mmUI._setCookie('filterbycontacts_names',includenames);
-				mmUI.updateEntries(null, include);
-				
-				if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-			});
-/**/
+				*/
+				//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
 			
-//*	
-	
-			// D & D entry -> contact
-			$('section#aims ul#contul>li').droppable({
-				hoverClass: 'ui-state-dropp',
-				drop:function(event,ui){
-					var eid = ui.draggable[0].id;
-					var aid = $(this).attr('name');
-					
-					//var aid = $(this).attributes[0].value;
-					if(mmUI.debug>0) console.log('ajax call');
-
-					mmUI.updateRelationEntryShared(eid,aid);
-					//** TODO update entries? */
-					mmUI.updateContacts();//changed count... maybe update just the aim?
-					event.preventDefault();
-					//$(ui.draggable).parent().sortable('cancel');//TODO this is a kludge and should be fixed
-				}
+			}
+		}
+		
+		// Select contacts
+		$('section#aims ul#contul>li>label').click(function(e) {
+			e.preventDefault();
+			var t = $(this).parents('li');
+			var u = t.parents('ul');
+			if (!u.hasClass('selecting')) u.addClass('selecting');
+			if (!t.hasClass('active')) {
+				t.addClass('active');
+			} else t.removeClass('active');
+			
+			var include = '';
+			var includenames = '';
+			var poopy = u.children('.active').each(function(index) {
+				if (include!='') include += ';'
+				include += $(this).attr('id');
 			});
-/**/			
-			//$('section#aims ul').selectable();
+			var contactfilternames = u.children('.active').each(function(index) {
+				if (includenames!='') includenames += ';'
+				includenames += $(this).attr('name');
+			});
+			//alert(include);
+			mmUI._setCookie('filterbycontacts',include);
+			mmUI._setCookie('filterbycontacts_names',includenames);
+			mmUI.updateEntries(null, include);
+			
+			if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+		});
+			
+		// D & D entry -> contact
+		$('section#aims ul#contul>li').droppable({
+			hoverClass: 'ui-state-dropp',
+			drop: function(event,ui) {
+				var eid = ui.draggable[0].id;
+				var aid = $(this).attr('name');
+				
+				//var aid = $(this).attributes[0].value;
+				if (mmUI.debug>0) console.log('ajax call');
 
-		},null,'loading:contacts'
-	);
+				mmUI.updateRelationEntryShared(eid,aid);
+				//** TODO update entries? */
+				mmUI.updateContacts();//changed count... maybe update just the aim?
+				event.preventDefault();
+				//$(ui.draggable).parent().sortable('cancel');//TODO this is a kludge and should be fixed
+			}
+		});
+
+		//$('section#aims ul').selectable();
+	}, null, 'loading:contacts');
 }
 
+// geo request, callback, view callback
 mmUI.updateNearLocs = function() {
 	var filter = mmUI._getCookie('filterbynearlocs');
-	var includelocs = (!empty(filter) ? filter.split(';') : null );
+	var includelocs = (!empty(filter) ? filter.split(';') : null);
 	
-//	$.getJSON(this.apiurl+'/BTW/contacts/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall){
-	JSONPCall('geo','&nearlocs=', function(dataall){
-			//alert(dataall[0]);
-			var htmldata = [];
-			var line = 0;
-			data = dataall['near'];
-			htmldata[line++] = '<ul id="nearlocul">';
-			for( i in data ) {
-				var entrysource = data[i].id;
-				var priority =5; //data[i].priority
-//				htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customcontacts"><label style="width: 230px; text-transform:capitalize">'+data[i].name+' <span style="font-size: 0.75em; vertical-align:top; line-height: 1.0em; float:right">'+(data[i].distance>500 ? Math.round(data[i].distance/100)/10+'k' : data[i].distance)+'m</span><span>('+data[i].i4p+')</span></label></li>';
-				htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customnearlocs"><label style="width: 230px; text-transform:capitalize">'+data[i].name+(empty(data[i].distance)?'':' <span style=" float:right">'+(data[i].distance>500 ? Math.round(data[i].distance/100)/10+'k' : data[i].distance)+'m</span>')+(empty(data[i].i4p)?'':'<span>('+data[i].i4p+')</span>')+'</label></li>';
-			}
-			htmldata[line++] = '</ul>';
+	//$.getJSON(this.apiurl+'/BTW/contacts/'+this.account+'?access_token='+this.access_token+limitreq+'&pinned='+encodeURIComponent(pinned)+'&json_callback=?', function(dataall) {
+	JSONPCall('geo','&nearlocs=', function(dataall) {
+		//alert(dataall[0]);
+		var htmldata = [];
+		var line = 0;
+		data = dataall['near'];
+		htmldata[line++] = '<ul id="nearlocul">';
+		for(i in data) {
+			var entrysource = data[i].id;
+			var priority =5; //data[i].priority
+			//htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customcontacts"><label style="width: 230px; text-transform:capitalize">'+data[i].name+' <span style="font-size: 0.75em; vertical-align:top; line-height: 1.0em; float:right">'+(data[i].distance>500 ? Math.round(data[i].distance/100)/10+'k' : data[i].distance)+'m</span><span>('+data[i].i4p+')</span></label></li>';
+			htmldata[line++] = '<li id="'+entrysource+'" name="'+escapeForHTML(data[i].name)+'" class="customnearlocs"><label style="width: 230px; text-transform:capitalize">'+data[i].name+(empty(data[i].distance)?'':' <span style=" float:right">'+(data[i].distance>500 ? Math.round(data[i].distance/100)/10+'k' : data[i].distance)+'m</span>')+(empty(data[i].i4p)?'':'<span>('+data[i].i4p+')</span>')+'</label></li>';
+		}
+		htmldata[line++] = '</ul>';
 
-			$('#places_part').html(htmldata.join(''));	
+		$('#places_part').html(htmldata.join(''));	
 
-			/** preselect contacts at reload */
-			if(!empty(includelocs)) {
-				var t = $('section#aims ul#nearlocul>li');
-				var u = t.parents('ul');
-				//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				//else 
-				u.addClass('selecting');
-				
-				for (var aim in includelocs) {
-					var el = $('ul#nearlocul>li[id='+includelocs[aim]+']');
-					$(el).addClass('active');
-/*					if (!t.hasClass('active')) {
-						t.addClass('active');
-					} else t.removeClass('active');
-					
-					var include = '';
-					var poopy = u.children('.active').each(function(index){
-						if(include!='') include += ';'
-						include += $(this).attr('id');
-					});
-					*/
-					//if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-				
-				}
-			}
+		/** preselect contacts at reload */
+		if (!empty(includelocs)) {
+			var t = $('section#aims ul#nearlocul>li');
+			var u = t.parents('ul');
+			//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+			//else 
+			u.addClass('selecting');
 			
-			// Select location
-			$('section#aims ul#nearlocul>li>label').click(function(e){
-				e.preventDefault();
-				var t = $(this).parents('li');
-				var u = t.parents('ul');
-				var selected = $('section#aims ul#nearlocul>li.customnearlocs.active');
-
-				if(!u.hasClass('selecting')) u.addClass('selecting');
+			for (var aim in includelocs) {
+				var el = $('ul#nearlocul>li[id='+includelocs[aim]+']');
+				$(el).addClass('active');
+				/*
 				if (!t.hasClass('active')) {
-					selected.removeClass('active');
 					t.addClass('active');
 				} else t.removeClass('active');
 				
 				var include = '';
-				var includenames = '';
-				var poopy = u.children('.active').each(function(index){
-					if(include!='') include += ';'
+				var poopy = u.children('.active').each(function(index) {
+					if (include!='') include += ';'
 					include += $(this).attr('id');
 				});
-				var contactfilternames = u.children('.active').each(function(index){
-					if(includenames!='') includenames += ';'
-					includenames += $(this).attr('name');
-				});	
-				mmUI._setCookie('filterbynearlocs',include);
-				mmUI._setCookie('filterbynearlocs_names',includenames);
-				mmUI.updateEntries(null, include);
+				*/
+				//if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+			}
+		}
+		
+		// Select location
+		$('section#aims ul#nearlocul>li>label').click(function(e) {
+			e.preventDefault();
+			var t = $(this).parents('li');
+			var u = t.parents('ul');
+			var selected = $('section#aims ul#nearlocul>li.customnearlocs.active');
+
+			if (!u.hasClass('selecting')) u.addClass('selecting');
+			if (!t.hasClass('active')) {
+				selected.removeClass('active');
+				t.addClass('active');
+			} else t.removeClass('active');
+			
+			var include = '';
+			var includenames = '';
+			var poopy = u.children('.active').each(function(index) {
+				if (include!='') include += ';'
+				include += $(this).attr('id');
+			});
+			var contactfilternames = u.children('.active').each(function(index) {
+				if (includenames!='') includenames += ';'
+				includenames += $(this).attr('name');
+			});	
+			mmUI._setCookie('filterbynearlocs',include);
+			mmUI._setCookie('filterbynearlocs_names',includenames);
+			mmUI.updateEntries(null, include);
+			
+			if (!u.children('li').hasClass('active')) u.removeClass('selecting');
+		});
+
+		// D & D entry -> contact
+		$('section#aims ul#contul>li').droppable({
+			hoverClass: 'ui-state-dropp',
+			drop: function(event,ui) {
+				var eid = ui.draggable[0].id;
+				var aid = $(this).attr('name');
 				
-				if(!u.children('li').hasClass('active')) u.removeClass('selecting');
-			});
-	
-			// D & D entry -> contact
-			$('section#aims ul#contul>li').droppable({
-				hoverClass: 'ui-state-dropp',
-				drop:function(event,ui){
-					var eid = ui.draggable[0].id;
-					var aid = $(this).attr('name');
-					
-					//var aid = $(this).attributes[0].value;
-					if(mmUI.debug>0) console.log('ajax call');
+				//var aid = $(this).attributes[0].value;
+				if (mmUI.debug>0) console.log('ajax call');
 
-					mmUI.updateRelationEntryShared(eid,aid);
-					//** TODO update entries? */
-					mmUI.updateContacts();//changed count... maybe update just the aim?
-					event.preventDefault();
-					//$(ui.draggable).parent().sortable('cancel');//TODO this is a kludge and should be fixed
-				}
-			});
-/**/			
-		},null,'loading:nearlocs'
-	);
-}
+				mmUI.updateRelationEntryShared(eid,aid);
+				//** TODO update entries? */
+				mmUI.updateContacts();//changed count... maybe update just the aim?
+				event.preventDefault();
+				//$(ui.draggable).parent().sortable('cancel');//TODO this is a kludge and should be fixed
+			}
+		});
+	},null,'loading:nearlocs');
+ }
 
-
-/**
-id of entry
-edit as fuzz
-*/
-mmUI.editEntryTitle = function(id, fuzz, disable)
-{
+// S1E: Toggles inline editing
+// entry edit view
+// id of entry, edit as fuzz
+mmUI.editEntryTitle = function(id, fuzz, disable) {
 	//$(".editabletitle")
 	var el = $("section.entries>article[id='"+id+"']").find("a[id='text']");
-	if( el.children('textarea').length>0 )
-	{
-	//if( it[0].text == 'APPLYCANCEL' ) {
-		if( disable ) {
+	if (el.children('textarea').length>0){
+		//if (it[0].text == 'APPLYCANCEL') {
+		if (disable) {
 			var previous = el.data('previous');
-// 			var current = el.children('textarea').html();
+			//var current = el.children('textarea').html();
 			var current = $('#textarea-'+id).val();
-			if(escapeForHTML(current)!=previous) {
+			if (escapeForHTML(current)!=previous) {
 				//el.html(el.children('textarea').html());
-					//if( escapeForHTML(value.current) == value.previous ) return value;
+					//if (escapeForHTML(value.current) == value.previous) return value;
 				//var el = $(this).parents('article');
 				//var key = $(this)[0].id;
 				//var t = $(this);
 				//var 
-				mmUI.updateEntryValue(id, 'text',current, function(data){
+				mmUI.updateEntryValue(id, 'text',current, function(data) {
 					//var value = (empty(data['pretty'+key]) ? data[key] : data['pretty'+key]);
 					//t.html(value);
 					el.html(current);
@@ -2455,188 +2481,195 @@ mmUI.editEntryTitle = function(id, fuzz, disable)
 		return;
 		//return;
 	}
-/*quick tasks proti quick-tasks drekec account	*/
+	/*quick tasks proti quick-tasks drekec account	*/
 	var text = el.html();
-	if( fuzz!= null ) text = fuzz;
+	if (fuzz!= null) text = fuzz;
 	var data = {current: text};
 	rows=getRowcount(text,45);
 	el.data('previous',text);
 	el.data('cancelvalue',el.html());
 	
 	el.html('<textarea id="textarea-'+id+'" onblur="mmUI.editEntryTitle(\''+id+'\',null,true)" class="editableinputtitle" onclick="javascript:return false;" rows="'+rows+'">'+data.current+'</textarea>');
-//	el.html('<textarea id="textarea-'+id+'" onblur="mmUI.editEntryTitle(\''+id+'\',null,true)" class="editableinputtitle" onclick="javascript:return false;" rows="'+rows+'">'+data.current+'</textarea><button class="editableapplybutton">APPLY</button><button class="editablecancelbutton">CANCEL</button>');
+	//el.html('<textarea id="textarea-'+id+'" onblur="mmUI.editEntryTitle(\''+id+'\',null,true)" class="editableinputtitle" onclick="javascript:return false;" rows="'+rows+'">'+data.current+'</textarea><button class="editableapplybutton">APPLY</button><button class="editablecancelbutton">CANCEL</button>');
 	//.html('<button class="editableapplybutton" /><button class="editablecancelbutton" />');
 	el.children('textarea').focus();	
 }
 
+// geo request, map view callback
 mmUI.getCurrentGeo = function() {
-	var limitreq = ( mmUI.getUIParameter('geo_limit') == true ? '&limit=10' : '' );
-	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+limitreq+'&get=true&json_callback=?', function(dataall){
-	JSONPCall('geo',limitreq+'&get', function(dataall){
-			//if(empty(dataall)) alert('pupi');
-			if( mmUI.checkError(dataall) ) return;
-			if( dataall.lat == 0 ) return;
-			mmUI.updateMap(dataall.lat,dataall.lon);
+	var limitreq = (mmUI.getUIParameter('geo_limit') == true ? '&limit=10' : '');
+	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+limitreq+'&get=true&json_callback=?', function(dataall) {
+	JSONPCall('geo',limitreq+'&get', function(dataall) {
+		//if (empty(dataall)) alert('pupi');
+		if (mmUI.checkError(dataall)) return;
+		if (dataall.lat == 0) return;
+		mmUI.updateMap(dataall.lat,dataall.lon);
 	},null,'loading:current location');
-}
-mmUI.getLocationByID = function(id)
-{
-	for( var it in mmUI.locations ) {	
-		if( mmUI.locations[it].id == id ) return mmUI.locations[it];
+ }
+
+// geo persistence helper
+mmUI.getLocationByID = function(id) {
+	for(var it in mmUI.locations) {	
+		if (mmUI.locations[it].id == id) return mmUI.locations[it];
 	}
 	return null;
 }
+
+// geo map view helper
 mmUI.geoCenterMarker = function(it, define) {
-	if(it==-1) {//current position
+	if (it==-1) {//current position
 		var clatlon = mmUI.currentpositionmarker.getPosition();
-		if( empty(clatlon) ) return;
-		if( empty(clatlon.lat()) ) return;
-		if(mmUI.debug>0) console.log('panning to: ',clatlng);
+		if (empty(clatlon)) return;
+		if (empty(clatlon.lat())) return;
+		if (mmUI.debug>0) console.log('panning to: ',clatlng);
 		mmUI.map.panTo(clatlon);
 		google.maps.event.trigger(mmUI.currentpositionmarker, 'click');
 		return;
 	}
-	if(empty(mmUI.locations)) return;
-	if(empty(mmUI.locations[it])) return;
-	if(empty(mmUI.locations[it].lat)) {
+	if (empty(mmUI.locations)) return;
+	if (empty(mmUI.locations[it])) return;
+	if (empty(mmUI.locations[it].lat)) {
 		var locat = mmUI.locations[it];
 		//current marker
 		var clatlon = mmUI.currentmarker.getPosition();
-		if( empty(clatlon) ) {
+		if (empty(clatlon)) {
 			//SET LOCATION YO
 			clatlon = mmUI.map.getCenter();
 			mmUI.currentmarker.setPosition(clatlon);
 		}
 		mmUI.infowindow.close();
-		//if( empty(clatlon.lat()) || isNaN(clatlon.lat())) return;
-		if(mmUI.debug>0) console.log('panning to2: ',clatlon);
+		//if (empty(clatlon.lat()) || isNaN(clatlon.lat())) return;
+		if (mmUI.debug>0) console.log('panning to2: ',clatlon);
 		mmUI.map.panTo(clatlon);
-		mmUI.infowindow.setContent( mmUI._getMarkerInfoHTML(locat) );
+		mmUI.infowindow.setContent(mmUI._getMarkerInfoHTML(locat));
 		mmUI.infowindow.open(mmUI.map,mmUI.currentmarker);
 		//google.maps.event.trigger(mmUI.currentmarker, 'click');
 	} else {
-		if(empty(mmUI.locations[it].marker)) return false;
-		if(mmUI.debug>0) console.log('panning to3: ',mmUI.locations[it].marker.getPosition());
+		if (empty(mmUI.locations[it].marker)) return false;
+		if (mmUI.debug>0) console.log('panning to3: ',mmUI.locations[it].marker.getPosition());
 		mmUI.locations[it].marker.getMap().panTo(mmUI.locations[it].marker.getPosition());
 		google.maps.event.trigger(mmUI.locations[it].marker, 'click');
 		//$(mmUI.locations[it].marker).click();
 	}
 }
 
-mmUI._getMarkerInfoHTML = function(location)
-{
-	if(empty(location)) {
+// geo marker template
+mmUI._getMarkerInfoHTML = function(location) {
+	if (empty(location)) {
 		var ret = 'define it yo ';
 		return ret;
 	}
 	var ret = location.name+'<br/>';
 	ret += '<img src="images/tag.png">';
-	if(!empty(location.tags)) ret += location.tags.join(', ');
-	if(!empty(location.id))  {
+	if (!empty(location.tags)) ret += location.tags.join(', ');
+	if (!empty(location.id))  {
 		ret += '<br/><a onclick="mmUI.deleteGeoLocation('+location.id+')">delete location</a>';
 		ret += '<br/><br/><a onclick="mmUI.ShowAllEntriesHere('+location.id+', \''+location.name+'\')">show all entries here (' + location.i4p + ')</a>';	
 	}
-	if(empty(location.lat)) ret += '<br/><a onclick="mmUI.saveCurrentMarkerGeoLocationSelected('+location.id+')">save location</a>';
+	if (empty(location.lat)) ret += '<br/><a onclick="mmUI.saveCurrentMarkerGeoLocationSelected('+location.id+')">save location</a>';
 	return ret;
 }
 
-mmUI.updateLocations = function(highlight)
-{
-		var marker;
+// S1E: 
+// geo map marker view, ui callbacks
+mmUI.updateLocations = function(highlight) {
+	var marker;
 
-		var map_overlay = [];
-		var mapit = 0;
-		var pos = mmUI.currentpositionmarker.getPosition();
-		if( !empty(pos) ) {
-			if( !empty(pos.lat()) && !isNaN(pos.lat()) ) {
-				//alert(pos.lat());
-				map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker(-1)"><div style="">Current Location</div></a></p>';
-			}
+	var map_overlay = [];
+	var mapit = 0;
+	var pos = mmUI.currentpositionmarker.getPosition();
+	if (!empty(pos)) {
+		if (!empty(pos.lat()) && !isNaN(pos.lat())) {
+			//alert(pos.lat());
+			map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker(-1)"><div style="">Current Location</div></a></p>';
 		}
-		var arbitratrylocationcountercurrentlynotassociatedwithreality = 1;
-		for ( it=0; it<mmUI.locations.length; it++ ) {
-			var location = mmUI.locations[it];
-			
-			if(empty(location.lat) ) {
-				//map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker('+it+')"><div style="padding:8px;font-size:17px;">'+(it+1)+' @?</div>'+location.name+'</a>';
+	}
+	var arbitratrylocationcountercurrentlynotassociatedwithreality = 0;
+	arbitratrylocationcountercurrentlynotassociatedwithreality++;
+	for (it=0; it<mmUI.locations.length; it++) {
+		var location = mmUI.locations[it];
+		
+		if (empty(location.lat)) {
+			//map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker('+it+')"><div style="padding:8px;font-size:17px;">'+(it+1)+' @?</div>'+location.name+'</a>';
+		} else {
+			var latlng = new google.maps.LatLng(location.lat, location.lon);
+
+			var markarr = {
+				position: latlng,
+				map: mmUI.map,
+				title: location.name
+				//draggable: true ##implementirat
+			}
+			if (location.name == 'home') {
+				//EX ##dr markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_icon_withshadow&chld=home|DDDD00&ext=.png");
+				markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_icon&chld=home|DDDD00&ext=.png");
 			} else {
-				var latlng = new google.maps.LatLng(location.lat, location.lon);
-
-				var markarr = {
-					position: latlng,
-					map: mmUI.map,
-					title: location.name
-					//draggable: true ##implementirat
-				}
-				if( location.name == 'home' ) {
-					//EX ##dr markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_icon_withshadow&chld=home|DDDD00&ext=.png");
-					markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_icon&chld=home|DDDD00&ext=.png");
-				} else {
-					//EX ##dr markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld="+(it+1)+"|c44&ext=.png");
-					markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld="+(it+1)+"|c44&ext=.png");
-				}
-				mmUI.locations[it].marker = new google.maps.Marker(markarr);
-				
-				mmUI.locations[it].marker.setTitle(mmUI.locations[it].name);
-				
-				if( location.id == highlight ){
-					var cont = mmUI._getMarkerInfoHTML(location);
-					/*
-					mmUI.locations[it].infowindow.setContent( cont );
-					mmUI.locations[it].infowindow.open(map,mmUI.locations[it].marker);
-					/*/
-					mmUI.infowindow.close();
-					mmUI.infowindow.setContent( cont );
-					mmUI.infowindow.open(mmUI.map,location.marker);
-				}
-				
-/*					
-				mmUI.locations[it].infowindow = new google.maps.InfoWindow({ 
-					content: '<br/><br/><br/><br/><br/><br/><br/><br/>'
-				});
-*/
-				google.maps.event.addListener(location.marker, 'click', (function(marker,it) {
-					return function() {
-						mmUI.infowindow.close();
-						var cont = mmUI._getMarkerInfoHTML(mmUI.locations[it]);
-						/*
-						mmUI.locations[it].infowindow.setContent( cont );
-						mmUI.locations[it].infowindow.open(map,mmUI.locations[it].marker);
-						/*/
-						mmUI.infowindow.setContent( cont );
-						mmUI.infowindow.open(mmUI.map,mmUI.locations[it].marker);
-						/**/
-					}
-				})(marker,it));
-				map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker('+it+')"><div style="">'+(arbitratrylocationcountercurrentlynotassociatedwithreality++)+' '+location.name+'</div></a>';
-				//map_overlay[mapit++] = ' [<a onclick="mmUI.deleteGeoLocation('+location.id+')">x</a>]';
-				map_overlay[mapit++] = '</p>';				
+				//EX ##dr markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld="+(it+1)+"|c44&ext=.png");
+				markarr['icon'] = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld="+(it+1)+"|c44&ext=.png");
 			}
-			//break;
+			mmUI.locations[it].marker = new google.maps.Marker(markarr);
+			
+			mmUI.locations[it].marker.setTitle(mmUI.locations[it].name);
+			
+			if (location.id == highlight) {
+				var cont = mmUI._getMarkerInfoHTML(location);
+				/*
+				mmUI.locations[it].infowindow.setContent(cont);
+				mmUI.locations[it].infowindow.open(map,mmUI.locations[it].marker);
+				*/
+				mmUI.infowindow.close();
+				mmUI.infowindow.setContent(cont);
+				mmUI.infowindow.open(mmUI.map,location.marker);
+			}
+			
+			/*					
+			mmUI.locations[it].infowindow = new google.maps.InfoWindow({ 
+				content: '<br/><br/><br/><br/><br/><br/><br/><br/>'
+			});				
+			*/
+			google.maps.event.addListener(location.marker, 'click', (function(marker,it) {
+				return function() {
+					mmUI.infowindow.close();
+					var cont = mmUI._getMarkerInfoHTML(mmUI.locations[it]);
+					/*
+					mmUI.locations[it].infowindow.setContent(cont);
+					mmUI.locations[it].infowindow.open(map,mmUI.locations[it].marker);
+					*/
+					mmUI.infowindow.setContent(cont);
+					mmUI.infowindow.open(mmUI.map,mmUI.locations[it].marker);
+				}
+			})(marker,it));
+			map_overlay[mapit++] = '<p><a href="javascript:mmUI.geoCenterMarker('+it+')"><div style="">'+(arbitratrylocationcountercurrentlynotassociatedwithreality++)+' '+location.name+'</div></a>';
+			//map_overlay[mapit++] = ' [<a onclick="mmUI.deleteGeoLocation('+location.id+')">x</a>]';
+			map_overlay[mapit++] = '</p>';				
 		}
-		$('#map_overlay').html(map_overlay.join(''));
-	if(mmUI.loaded['geolocations']) {
+		//break;
+	}
+
+	$('#map_overlay').html(map_overlay.join(''));
+
+	if (mmUI.loaded['geolocations']) {
 		var definemsg = '';
-		if(!empty(highlight)) {
+		if (!empty(highlight)) {
 			var loc = mmUI.getLocationByID(highlight);
 			definemsg = 'Please define '+loc.name+' on the map';
 			//mmUI.infowindow.close();
 		} 
 		$('#definepoint').html(definemsg);
 	}
-		
 }
 
+// geo request, persistence callback
 mmUI.getGeo = function(highlight) {
-	if( mmUI.loaded['map'] != true ) return;
+	if (mmUI.loaded['map'] != true) return;
 
-	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&locations=true&json_callback=?', function(dataall){
-	JSONPCall('geo','&locations', function(dataall){
-		if( mmUI.checkError(dataall) ) return;
+	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&locations=true&json_callback=?', function(dataall) {
+	JSONPCall('geo','&locations', function(dataall) {
+		if (mmUI.checkError(dataall)) return;
 		/** if locations already loaded and autocompletes instantiated--- check for memory leak/destroy TODO */
-		if( !empty(mmUI.locations) ) {
-			for( var i in mmUI.locations ){
-				if( !empty(mmUI.locations[i].marker) ) {
+		if (!empty(mmUI.locations)) {
+			for(var i in mmUI.locations) {
+				if (!empty(mmUI.locations[i].marker)) {
 					mmUI.locations[i].marker.setMap(null);
 					/**TODO close infowindow if open*/
 				}
@@ -2647,36 +2680,38 @@ mmUI.getGeo = function(highlight) {
 		mmUI.updateLocations(highlight);
 		mmUI.loaded['geolocations'] = true;
 	},null,'loading:locations');
-}
+ }
 
+// geo post request
 mmUI.setGeo = function(name, lat, lon, tags, id) {
-	//var limitreq = ( mmUI.getUIParameter('geo_limit') == true ? '&limit=10' : '' );
-	//if(empty(map)) return;
+	//var limitreq = (mmUI.getUIParameter('geo_limit') == true ? '&limit=10' : '');
+	//if (empty(map)) return;
 	var tagsdelimited = (empty(tags) ? '' : tags.replace(',',';'));
-	var idpart = (empty(id) ? '' : '&locid='+id );
-//	$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&name='+encodeURIComponent(name)+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&tags='+encodeURIComponent(tagsdelimited)+'&setloc=true&json_callback=?', function(dataall){
-	JSONPCall('geo','&name='+encodeURIComponent(name)+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&tags='+encodeURIComponent(tagsdelimited)+idpart+'&setloc=', function(dataall){
-			//if(empty(dataall)) alert('pupi');
-			if( mmUI.checkError(dataall) ) return;
-			if(!empty(mmUI.map)) mmUI.getGeo();//reload all locations? dont update map yo
-			//mmUI.locations = dataall;//mmUI.updateMap(dataall.lat,dataall.lon);
+	var idpart = (empty(id) ? '' : '&locid='+id);
+	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&name='+encodeURIComponent(name)+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&tags='+encodeURIComponent(tagsdelimited)+'&setloc=true&json_callback=?', function(dataall) {
+	JSONPCall('geo','&name='+encodeURIComponent(name)+'&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&tags='+encodeURIComponent(tagsdelimited)+idpart+'&setloc=', function(dataall) {
+		//if (empty(dataall)) alert('pupi');
+		if (mmUI.checkError(dataall)) return;
+		if (!empty(mmUI.map)) mmUI.getGeo();//reload all locations? dont update map yo
+		//mmUI.locations = dataall;//mmUI.updateMap(dataall.lat,dataall.lon);
 	});
 }
 
+// geo destroy request
 mmUI.deleteGeoLocation = function(id) {
 	//EX mmUI.infowindow.close();
-	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&locid='+encodeURIComponent(id)+'&delloc=true&json_callback=?', function(dataall){
-	JSONPCall('geo','&locid='+encodeURIComponent(id)+'&delloc=true', function(dataall){
-			//if(empty(dataall)) alert('pupi');
-			if( mmUI.checkError(dataall) ) return;
-			//TODO if( id in mmUI.lastEntryRequest .at.id ) update only this entry UI by removing location
-			mmUI.getGeo();
-			//mmUI.updateEntries();		
+	//$.getJSON(this.apiurl+'/BTW/geo/'+this.account+'?access_token='+this.access_token+'&locid='+encodeURIComponent(id)+'&delloc=true&json_callback=?', function(dataall) {
+	JSONPCall('geo','&locid='+encodeURIComponent(id)+'&delloc=true', function(dataall) {
+		//if (empty(dataall)) alert('pupi');
+		if (mmUI.checkError(dataall)) return;
+		//TODO if (id in mmUI.lastEntryRequest .at.id) update only this entry UI by removing location
+		mmUI.getGeo();
+		//mmUI.updateEntries();		
 	});
 }
 
-mmUI.ShowAllEntriesHere = function(id, name)
-{
+// entries filter
+mmUI.ShowAllEntriesHere = function(id, name) {
 	mmUI._setCookie('filterbynearlocs',id);
 	mmUI._setCookie('filterbynearlocs_names',name);
 	mmUI.updateEntries(null, id);
@@ -2688,53 +2723,53 @@ mmUI.ShowAllEntriesHere = function(id, name)
 	var cont = '';
 	
 	cont += mmUI.infowindow.getContent().toString().replace('show all entries here', '');
- 	
-	JSONPCall(calltype, efp, function(dataall){
- 	mmUI.requestCache['entries'] = {};
- 	for( var ei in dataall.entries.items ) {
+	
+	JSONPCall(calltype, efp, function(dataall) {
+	mmUI.requestCache['entries'] = {};
+	for(var ei in dataall.entries.items) {
 		mmUI.requestCache['entries'][dataall.entries.items[ei].id] = dataall.entries.items[ei];
 		cont += dataall.entries.items[ei].text + "<br />";
 	}
-	mmUI.infowindow.setContent( cont );
+	mmUI.infowindow.setContent(cont);
 	}
 	); */
 }
 
-mmUI.saveDefinedAndClose = function()
-{
+// agenda
+mmUI.saveDefinedAndClose = function() {
 	location.href='#agenda/';
 	mmUI.infowindow.close();
 }
 
-mmUI.saveCurrentMarkerGeoLocationSelected = function(returnto)
-{
+// geo helper
+mmUI.saveCurrentMarkerGeoLocationSelected = function(returnto) {
 	var pos = mmUI.currentmarker.getPosition();
 	return mmUI.saveCurrentMarkerGeoLocation(returnto, pos);
 }
 
-mmUI.saveCurrentMarkerGeoLocationCurrent = function(returnto) 
-{
+// geo helper
+mmUI.saveCurrentMarkerGeoLocationCurrent = function(returnto) {
 	var pos = mmUI.currentpositionmarker.getPosition();
 	return mmUI.saveCurrentMarkerGeoLocation(returnto, pos);
 }
 
-mmUI.saveCurrentMarkerGeoLocation = function(returnto, pos)
-{
+// geo helper
+mmUI.saveCurrentMarkerGeoLocation = function(returnto, pos) {
 	var name = $('#currentmarkername').val();
 	var tags = $('#currentmarkertags').val();
 	var el = $('#currentmarkerid');
 	var id = null;
-	if( !empty(el) ) id = $('#currentmarkerid').val();
+	if (!empty(el)) id = $('#currentmarkerid').val();
 	
-	if( empty(mmUI.currentmarker) ) return;
+	if (empty(mmUI.currentmarker)) return;
 	var lat = pos.lat();
 	var lon = pos.lng();
-	if(isNaN(lat)) return;
+	if (isNaN(lat)) return;
 	mmUI.setGeo(name,lat,lon,tags,mmUI.mapDefinePoint);
 	mmUI.currentmarker.setVisible(false);
 	mmUI.mapDefinePoint = null;
 	mmUI.infowindow.setContent('saving <img src="images/wait.gif">');
-	if(!empty(returnto)) {
+	if (!empty(returnto)) {
 		setTimeout("mmUI.saveDefinedAndClose()",500);
 		mmUI.messages['ground'] = '';
 		/** TODO return to editing the entry that brought us to the map */
@@ -2744,9 +2779,9 @@ mmUI.saveCurrentMarkerGeoLocation = function(returnto, pos)
 	return false;
 }
 
-mmUI._setCookie = function (name,value,expireminutes)
-{
-	if(typeof localStorage != 'undefined' ) return localStorage.setItem(name,value);
+// persistence util
+mmUI._setCookie = function (name,value,expireminutes) {
+	if (typeof localStorage != 'undefined') return localStorage.setItem(name,value);
 	//return sessionStorage.setItem(name,value);
 	var exdate=new Date();
 	exdate.setTime(exdate.getTime()+(expireminutes*60*1000));
@@ -2755,8 +2790,8 @@ mmUI._setCookie = function (name,value,expireminutes)
 	document.cookie = 'middlemachine.com_'+name+ "=" +escape(value)+((expireminutes==null) ? "" : "; expires="+exdate.toUTCString())+'; path=/';
 }
 
-/*mmUI._getCookie = function(name)
-{
+/*
+mmUI._getCookie = function(name) {
 	var nameEQ = name + "=";
 	var ca = document.cookie.split(';');
 	for(var i=0;i < ca.length;i++) {
@@ -2765,10 +2800,12 @@ mmUI._setCookie = function (name,value,expireminutes)
 		if (c.indexOf(nameEQ) == 0) return unescape(c.substring(nameEQ.length,c.length));
 	}
 	return null;
-}*/
-mmUI._getCookie = function(name)
-{
-	if(typeof localStorage != 'undefined' ) return localStorage.getItem(name);
+}
+*/
+
+// persistence util
+mmUI._getCookie = function(name) {
+	if (typeof localStorage != 'undefined') return localStorage.getItem(name);
 	//return sessionStorage.getItem(name);
 	var c_name = 'middlemachine.com_'+name;
 	if (document.cookie.length>0)
@@ -2784,9 +2821,10 @@ mmUI._getCookie = function(name)
 	}
 	return "";
 }
-mmUI.updateCookie = function()
-{
-	if( empty(mmUI.access_token) ) return mmUI.deleteCookie();
+
+// persistence session
+mmUI.updateCookie = function() {
+	if (empty(mmUI.access_token)) return mmUI.deleteCookie();
 	var currdate=new Date().getTime();
 	mmUI._setCookie('lastcookieupdate',currdate,90);
 
@@ -2797,58 +2835,64 @@ mmUI.updateCookie = function()
 	mmUI._setCookie('apiurl',mmUI.apiurl,90);
 	//mmUI.loadCookie();
 }
-mmUI.deleteCookie = function()
-{
+
+// persistence session
+mmUI.deleteCookie = function() {
 	//alert(mmUI.account);
 	mmUI._setCookie('account','',-1);
 	mmUI._setCookie('access_token','',-1);
 	mmUI._setCookie('username','',-1);
 	//mmUI.loadCookie();
 }
-mmUI.loadCookie = function()
-{
+
+// persistence session
+mmUI.loadCookie = function() {
 	var cookie = mmUI._getCookie('access_token');
-//	alert(document.cookie);
-	if( empty(cookie) ) return false;
+	//	alert(document.cookie);
+	if (empty(cookie)) return false;
 	
 	var currdate=new Date().getTime();
 	var lastupdate = mmUI._getCookie('lastcookieupdate');
-	if((Number(lastupdate)+30*60*1000)<currdate) return;//30min "session timeout", refreshes upon login and with each json call
+	if ((Number(lastupdate)+30*60*1000)<currdate) return;//30min "session timeout", refreshes upon login and with each json call
 	
 	mmUI.access_token = cookie;
 	mmUI.account = mmUI._getCookie('account');
 	mmUI.username = mmUI._getCookie('username');	
 	mmUI.apiurl = mmUI._getCookie('apiurl');
 }
+
+// persistence search
 mmUI.clearSearchFilters = function(skipupdate) {
-	if(!empty(mmUI._getCookie('filterbyaims'))) {
+	if (!empty(mmUI._getCookie('filterbyaims'))) {
 		mmUI._setCookie('filterbyaims',undefined); 
-		if(!skipupdate) mmUI.updateAims(); 
+		if (!skipupdate) mmUI.updateAims(); 
 	}
-	if(!empty(mmUI._getCookie('filterbycontacts'))) {
+	if (!empty(mmUI._getCookie('filterbycontacts'))) {
 		mmUI._setCookie('filterbycontacts',undefined); 
-		if(!skipupdate) mmUI.updateContacts(); 
+		if (!skipupdate) mmUI.updateContacts(); 
 	}
-	if(!empty(mmUI._getCookie('filterbynearlocs'))) {
+	if (!empty(mmUI._getCookie('filterbynearlocs'))) {
 		mmUI._setCookie('filterbynearlocs',undefined); 
-		if(!skipupdate) mmUI.updateNearLocs(); 
+		if (!skipupdate) mmUI.updateNearLocs(); 
 	}
 	mmUI._setCookie('searchentries',undefined);
-	if(!skipupdate)mmUI.updateEntries(); 
+	if (!skipupdate)mmUI.updateEntries(); 
 }
-mmUI.login = function(username, password)
-{
+
+// session view, request, callback, persistence, redirect
+mmUI.login = function(username, password) {
 	//alert('_'+password+'_');
 	//alert($.md5(password));
 	$('#loginmsg').html('Logging in... <img src="images/wait.gif">');
 	
 	mmUI.apiurl = $('#server').val().replace(/^\s+|\s+$/g,"");
-//	$.getJSON(this.apiurl+'/BTW/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?', function(dataall){
-	//$.getJSON(this.apiurl+'/BTW/api/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?', function(dataall){
-	$.jsonp({timeout: 25000,"url": mmUI.apiurl+'/BTW/api/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?', "success": function(dataall){
-	//JSONPCall('api/login','&locid='+encodeURIComponent(id)+'&delloc=true', function(dataall){
+	//$.getJSON(this.apiurl+'/BTW/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?', function(dataall) {
+	//$.getJSON(this.apiurl+'/BTW/api/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?', function(dataall) {
+	$.jsonp({timeout: 25000, "url": mmUI.apiurl+'/BTW/api/login/'+username+'?pass='+$.md5(password)+'&md5=true&json_callback=?',
+		"success": function(dataall) {
+			//JSONPCall('api/login','&locid='+encodeURIComponent(id)+'&delloc=true', function(dataall) {
 			//this.updateEntries(dataall['entries']);
-			if(dataall.token!=null) {
+			if (dataall.token!=null) {
 				$('#loginmsg').html('');
 				location.href= '#';
 				//location.href= '#agenda/';
@@ -2862,33 +2906,33 @@ mmUI.login = function(username, password)
 				mmUI.saveUIParameter('aim_limit','1');
 				mmUI.saveUIParameter('contact_limit','1');
 				mmUI.startedRequests = {};
-				if(!empty(mmUI.apiurl) ) {
-					//$.getJSON(mmUI.apiurl+'/BTW/appdata/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall){
-					JSONPCall('appdata', '', function(dataall){
+				if (!empty(mmUI.apiurl)) {
+					//$.getJSON(mmUI.apiurl+'/BTW/appdata/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall) {
+					JSONPCall('appdata', '', function(dataall) {
 						mmUI.setUIObject('appdata', dataall['workflow']);		
 						location.href= '#agenda/';
-						//setupUI(); // SETUP UI
+						//mmUI.setupUI(); // SETUP UI
 					},null,'loading:application data');
 				} else {
 					location.href= '#';
-					//setupUI(); // SETUP UI
- 					//location.href= '#';
+					//mmUI.setupUI(); // SETUP UI
+						//location.href= '#';
 				}
-//				setupUI();
+					//mmUI.setupUI();
 			} else {
 				$('#loginmsg').html('<b>Incorrect username or password.</b>');
 			}
-
-		}, "error": function(d,msg){
+		},
+		"error": function(d,msg) {
 			$('#loginmsg').html('<b style="color:#f11">Error connecting to server</b><br>Please try later.');
 		}
 	});
-//  	return true;
+	//return true;
 	return false;
-}
+ }
 
-mmUI.logout = function()
-{
+// session view, request, callback
+mmUI.logout = function() {
 	mmUI.clearSearchFilters(true);
 	mmUI.updateCookie();
 	mmUI.deleteCookie();
@@ -2896,21 +2940,22 @@ mmUI.logout = function()
 	mmUI.initializeDOM();
 	mmUI.initializeUI();
 	
-	if(!mmUI.isUserLoggedIn()) {
+	if (!mmUI.isUserLoggedIn()) {
 		location.href= '#';
-//		setupUI();
+		//mmUI.setupUI();
 		return false;
 	}
-	JSONPCall('api/logout','', function(dataall){
-//		alert('logout'+document.cookie);
-		//setupUI();
+
+	JSONPCall('api/logout','', function(dataall) {
+		//alert('logout'+document.cookie);
+		//mmUI.setupUI();
 		mmUI.access_token = null;
 		mmUI.apiurl = null;
 		mmUI.account = null;
 		mmUI.username = null;
 		location.href= '#';//on hashchange will reload the ui
-// 		$('#justsubmit').submit();
-	}, function(){
+		//$('#justsubmit').submit();
+	}, function() {
 		mmUI.access_token = null;
 		mmUI.apiurl = null;		
 		mmUI.account = null;
@@ -2919,44 +2964,47 @@ mmUI.logout = function()
 	});	
 	return false;
 }
-mmUI.clearEntryBar = function()
-{
+
+// autocomplete util
+mmUI.clearEntryBar = function() {
 	$('#new-entry').val('');
 	$('#new-entry').autocomplete("close");
 }
-mmUI.searchFuzz = function(normal)
-{
+
+// autocomplete view callback, shows all entries matching search
+mmUI.searchFuzz = function(normal) {
 	//event.preventDefault();
 	var fuzz = $('#new-entry').val();
-	if(!normal) fuzz = fuzz.substr(1);
+	if (!normal) fuzz = fuzz.substr(1);
 	//location.href='#agenda/#search='+fuzz;
 	mmUI.clearEntryBar();
 	
 	mmUI._setCookie('searchentries',fuzz);
 	mmUI.updateEntries();
 }
-mmUI.addFuzz = function(fuzz)
-{
+
+
+mmUI.addFuzz = function(fuzz) {
 	//$('#new-entry').close();
 	$('#new-entry').autocomplete("close");
 	var fuzz = $('#new-entry').val();
-	if( fuzz == '' ) return;
+	if (fuzz == '') return;
 	mmUI.clearEntryBar();
 	mmUI.clearSearchFilters(true);
-	//$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+'&add='+encodeURIComponent(fuzz)+'&json_callback=?', function(dataall){
-	JSONPCall('entry','&add='+encodeURIComponent(fuzz), function(dataall){
+	//$.getJSON(this.apiurl+'/BTW/entry/'+this.account+'?access_token='+this.access_token+'&add='+encodeURIComponent(fuzz)+'&json_callback=?', function(dataall) {
+	JSONPCall('entry','&add='+encodeURIComponent(fuzz), function(dataall) {
 		//mmUI.updateEntries();
 		mmUI.requestCache['entries'] = {};
-		for( var ei in dataall.entries.items ) {
-				mmUI.requestCache['entries'][dataall.entries.items[ei].id] = dataall.entries.items[ei];
+		for(var ei in dataall.entries.items) {
+			mmUI.requestCache['entries'][dataall.entries.items[ei].id] = dataall.entries.items[ei];
 		}
 		mmUI._constructEntries(dataall);
-// 		var item = $("section.entries>article[id='text']>header");
-// 		item.click();
+		//var item = $("section.entries>article[id='text']>header");
+		//item.click();
 		mmUI.updateAims();
 		mmUI.updateContacts();
-		if(!empty(dataall.client_directives)) {
-			if(!empty(dataall.client_directives.new_place)) {
+		if (!empty(dataall.client_directives)) {
+			if (!empty(dataall.client_directives.new_place)) {
 				var new_place = dataall.client_directives.new_place;
 				mmUI.messages['ground'] = '<a href="#locations/?define='+new_place.id+'">Ground @'+new_place['name']+'</a>?';
 				//$('#filteredby').html($('#filteredby').html()+' <a href="#locations/?define='+dataall.new_place.id+'">Ground @'+dataall.new_place['name']+'</a>?').fadeIn('fast');
@@ -2965,48 +3013,46 @@ mmUI.addFuzz = function(fuzz)
 			}
 		}
 		mmUI.updateCurrentRequestInfo();
-	},null,'saving:new fuzz');
+	}, null, 'saving:new fuzz');
 }
 
-mmUI.updateAwesomeBarSource = function ()
-{
-	// UI Autocomplete
-	//$.getJSON(mmUI.apiurl+'/BTW/suggestions/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall){
-	JSONPCall('suggestions','', function(dataall){
-		if( mmUI.checkError(dataall) ) return;
+// autocomplete request, persistence callback
+mmUI.updateAwesomeBarSource = function () {
+	//UI Autocomplete
+	//$.getJSON(mmUI.apiurl+'/BTW/suggestions/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall) {
+	JSONPCall('suggestions','', function(dataall) {
+		if (mmUI.checkError(dataall)) return;
 		//mmUI.updateEntries();
 		mmUI.availableTags = new Array();
 		mmUI.allTags = dataall;
-		
 		mmUI.allTags.none.sort();
-//*		
 		for(var realkey in mmUI.allTags) {
-			for( var i in mmUI.allTags[realkey] ) {
+			for(var i in mmUI.allTags[realkey]) {
 				var key = realkey;
-				if( realkey == 'contacts' ) {
+				if (realkey == 'contacts') {
 					key = '>';//ofmg TODOFFS
-					if(empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
+					if (empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
 					var val = key + mmUI.allTags[realkey][i];
 					mmUI.availableTags[key].push(val);
 					key = '<';
-					if(empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
+					if (empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
 					var val = key + mmUI.allTags[realkey][i];
 					mmUI.availableTags[key].push(val);
 					key = '+';
 				}
-//				if( realkey == 
-				if(empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
+				// if (realkey == 
+				if (empty(mmUI.availableTags[key])) mmUI.availableTags[key] = new Array();
 				var val = mmUI.allTags[realkey][i];
-				if( key == '(' ) val += ')';
-				if( key!='none' ) val = key + val;
+				if (key == '(') val += ')';
+				if (key!='none') val = key + val;
 				mmUI.availableTags[key].push(val);
 			}
 		}
-/**/
-	},null,'loading:suggestions');
+	}, null, 'loading:suggestions');
 }
-mmUI.setupAwesomeBar = function()
-{
+
+// autocomplete view, event bindings
+mmUI.setupAwesomeBar = function() {
 	function split(val) {
 		return val.split(/ \s*/);
 	}
@@ -3028,14 +3074,13 @@ mmUI.setupAwesomeBar = function()
 			var existingSearch = split(request.term);
 			var lastterm = extractLast(request.term);//halo bug, kaj pa ce kliknes na zacetek stringa in zacnes pisaT TODO?
 			var returnfrom = null;
-			if(empty(mmUI.availableTags) ) {
+			if (empty(mmUI.availableTags)) {
 				//handle it... TODO
 				return false;
 			}
-			if( lastterm == '' ) return false;
+			if (lastterm == '') return false;
 			//var returnfrom = availableTags;
-//*			
-			if(lastterm[0] == '#') {
+			if (lastterm[0] == '#') {
 				returnfrom = mmUI.availableTags['#'];
 			} else if (lastterm[0] == '@') {
 				returnfrom = mmUI.availableTags['@'];
@@ -3052,38 +3097,36 @@ mmUI.setupAwesomeBar = function()
 			} else if (lastterm[0] == '+') {
 				returnfrom = mmUI.availableTags['+'];
 			}
-			if(returnfrom == null ) {
+			if (returnfrom == null) {
 				var norml = 1;
 				returnfrom = mmUI.availableTags['none'];
 			} else {
 			}
-/**/				
-//*
 			var results = new Array();
 			for(i in returnfrom) {
 				//var srch = (norml==1?)
-//				if( returnfrom[i].search(lastterm)!=-1 ) {
-// 				if( returnfrom[i].search("/"+lastterm+"/i")!=-1 ) {
-					results.push(returnfrom[i]);
- 					//if(i>25) break;
-//				}
+				//if (returnfrom[i].search(lastterm)!=-1) {
+				//	if (returnfrom[i].search("/"+lastterm+"/i")!=-1) {
+				results.push(returnfrom[i]);
+				//	if (i>25) break;
+				//}
 			}
-/**/			
+
 			//var resp = results;
 			var resp = new Array();
 			var srch = lastterm;
 			var nrml = (empty(norml)?'false':'true');
-			if( empty(norml) && lastterm.length>1) {
+			if (empty(norml) && lastterm.length>1) {
 				resp = $.ui.autocomplete.filter(results,lastterm).splice(0,5);
 				//resp.push('</a></li><li class="ui-existing">Existing items</li><li><a>');
 				srch = lastterm.substr(1);
 			}
 			//alert(srch);
 			var foundsimilar = false;
-			if( request.term.length > 2 ) {
+			if (request.term.length > 2) {
 				var icnt = 0;
 				var respok = mmUI.availableTags['none'];
-				for(var cure in existingSearch ) {
+				for(var cure in existingSearch) {
 
 					var resp2 = respok.slice();
 					respok = [];
@@ -3091,26 +3134,25 @@ mmUI.setupAwesomeBar = function()
 					//var regexsrch = srch.replace("/[.*+?|()\[\]{}\\]/");
 					var regexsrch = existingSearch[cure].replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 					var rx = new RegExp(regexsrch,'gi');
-					for( var nonval in resp2 ) {
+					for(var nonval in resp2) {
 						var pp = resp2[nonval];
-						if(resp2[nonval].t.search(rx)==-1) {
+						if (resp2[nonval].t.search(rx)==-1) {
 							//resp2.splice(nonval,1);
 							//resp2.push(mmUI.availableTags['none'][nonval]);
 							//icnt++;
 						} else {
 							respok.push(resp2[nonval]);
 							foundsimilar = true;
-							//if(icnt>4) break;
+							//if (icnt>4) break;
 						}
 					}
 				}
 				resp.push('__srch')
-				if(foundsimilar) resp.push('----');
+				if (foundsimilar) resp.push('----');
 				resp = resp.concat(respok.splice(0,4));
 			}
 			response(resp);
 			//response($.ui.autocomplete.filter(availableTags,lastterm));
-//*			
 			//$('ul.ui-autocomplete').prepend('<li class="ui-existing">Existing items</li>');
 			//$('ul.ui-autocomplete').append('<li><a href="" onclick="javascript: mmUI.searchFuzz('+nrml+'); event.returnValue = false; return false;">Show all results</a></li>');
 			
@@ -3122,13 +3164,13 @@ mmUI.setupAwesomeBar = function()
 			return false;
 		},
 		select: function(event,ui) {
-			if(!empty(ui.item.url)) location.href = ui.item.url;
+			if (!empty(ui.item.url)) location.href = ui.item.url;
 			
-			var terms = split( this.value );
+			var terms = split(this.value);
 			// remove the current input
 			terms.pop();
 			// add the selected item
-			terms.push( ui.item.value );
+			terms.push(ui.item.value);
 			// add placeholder to get the comma-and-space at the end
 			terms.push('');
 			this.value = terms.join(' ');
@@ -3139,86 +3181,89 @@ mmUI.setupAwesomeBar = function()
 		}		
 	});
 
-	$('input#new-entry').data("autocomplete")._renderItem = function(ul, item){
-		var poopy = $( "<li></li>" );		
-		var url = (item.label == item.value ? '' : item.value );
-		if( item.label=='----' ) poopy = $( "<li>Existing similar items</li>" );
-		if( item.label=='__srch' ) return;
+	$('input#new-entry').data("autocomplete")._renderItem = function(ul, item) {
+		var poopy = $("<li></li>");		
+		var url = (item.label == item.value ? '' : item.value);
+		if (item.label=='----') poopy = $("<li>Existing similar items</li>");
+		if (item.label=='__srch') return;
 		
-		if( empty(item.value) ) {//this is an url
-			//for( var i in item ) 
+		if (empty(item.value)) {//this is an url
+			//for(var i in item) 
 			{
-				//if(empty(item[i])) continue;
+				//if (empty(item[i])) continue;
 				url += '#agenda/?entryid='+item.id;
 				item.url = url;
 				item.label = item.t;
 				url += '" class="autocompletelink';
 			}
 		}
-		//if( url == 'trans' ) poopy.append('<object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/BCgbYnNAbSM?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/BCgbYnNAbSM?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object>');
-		poopy.data( "item.autocomplete", item );
+		//if (url == 'trans') poopy.append('<object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/BCgbYnNAbSM?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/BCgbYnNAbSM?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object>');
+		poopy.data("item.autocomplete", item);
 		
-		if( item.label!='----' ) {
-			poopy.append( "<a href=\"#agenda/"+url+"\">" + htmlentities(item.label) + "</a>" );
+		if (item.label!='----') {
+			poopy.append("<a href=\"#agenda/"+url+"\">" + htmlentities(item.label) + "</a>");
 		}
-// 				.append( "<a>" + item.label + "<br>" + item.desc + "</a>" )
-				//.append('<object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/hMtZfW2z9dw?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/hMtZfW2z9dw?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object>')
-		poopy.appendTo( ul );
+		//.append("<a>" + item.label + "<br>" + item.desc + "</a>")
+		//.append('<object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/hMtZfW2z9dw?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/hMtZfW2z9dw?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object>')
+		poopy.appendTo(ul);
 		return poopy;
-//<li class="ui-existing">Existing items</li>				
+		//<li class="ui-existing">Existing items</li>				
 	};
 	
-	$('input#new-entry').bind( "keydown.autocomplete", function( event ) {
+	$('input#new-entry').bind("keydown.autocomplete", function(event) {
 		//alert('tuki');
 		//return;
-/*		
-		if ( self.options.disabled ) {
+		/*		
+		if (self.options.disabled) {
 			return;
 		}
-*/
+		*/
 		var keyCode = $.ui.keyCode;
-		switch( event.keyCode ) {
+		switch(event.keyCode) {
 		case keyCode.DOWN:
-			if($('#new-entry').val() == '' ) $(this).blur();
+			if ($('#new-entry').val() == '') $(this).blur();
 			break;
 		case keyCode.ENTER:
 		case keyCode.NUMPAD_ENTER:
 			var autoc = $('input#new-entry').data("autocomplete");
-			if( empty(autoc.selectedItem) ) {
+			if (empty(autoc.selectedItem)) {
 				mmUI.addFuzz();
 				event.preventDefault();
-			} else if( !empty(autoc.selectedItem.id)) {
+			} else if (!empty(autoc.selectedItem.id)) {
 				//event.prevent
 				location.href="#agenda/?entryid="+autoc.selectedItem.id;
 			}
 			
 			//$('awesome-bar').submit();
 			// when menu is open or has focus
-/*			if ( self.menu.element.is( ":visible" ) ) {
-			}*/
+			/*
+			if (self.menu.element.is(":visible")) {
+			}
+			*/
 			//passthrough - ENTER and TAB both select the current element
 			break;
 		}
 	});
 	
-	/*$('input#new-entry').focusout(function(e) {
+	/*
+	$('input#new-entry').focusout(function(e) {
 		e.preventDefault();
 		var entryText = $('input #new-entry').val();
 		if (entryText != "")
 			$(this).css('color', '#4b5259');
-	});*/
+	});
+	*/
 	
 	$('input#new-entry').focus();
 	mmUI.updateAwesomeBarSource();
 }
 
-mmUI.awesomeBarUpdate = function(event, ui)
-{
-}
+mmUI.awesomeBarUpdate = function(event, ui) {}
 
-mmUI.toggleLimit = function(which)
-{
-	if( which=='aim' ) {
+// S1E: Probably called from ui event bindings, belongs to relevant views
+// util ui
+mmUI.toggleLimit = function(which) {
+	if (which=='aim') {
 		var val = mmUI.toggleUIParameter(which+'_limit'); 
 		mmUI.updateAims();
 	} else {
@@ -3228,35 +3273,35 @@ mmUI.toggleLimit = function(which)
 	}
 }
 
-mmUI.updateMap = function(lat, lon, zoom, highlight)
-{
+// geo map view and behaviour
+mmUI.updateMap = function(lat, lon, zoom, highlight) {
 	var cont = "";
 	highlight = mmUI.mapDefinePoint;
 	
-	if(typeof google === 'undefined'){// || mmUI.loaded['mapapi'] != true ) {
-		if( mmUI.mapLoadingRequested != null) return;
+	if (typeof google === 'undefined') {// || mmUI.loaded['mapapi'] != true) {
+		if (mmUI.mapLoadingRequested != null) return;
 		mmUI.mapLoadingRequested = true;
-		if(!empty(lat)) {
+		if (!empty(lat)) {
 			mmUI.clat = lat;
 			mmUI.clon = lon;
 			mmUI.highlight = highlight;
 		}
 		var script = document.createElement("script");
 		script.type = "text/javascript";
-		script.src = "http://maps.google.com/maps/api/js?sensor=false&key=ABQIAAAAAELjjyzaA3hVbTTJMxZ9dRSm8y5sGFi4czMlZk1FjGDzA-wtQhRiVw2tzug_GC86u8k-TpvHoJxShQ&callback=initializeMap";
+		script.src = "http://maps.google.com/maps/api/js?sensor=false&key=ABQIAAAAAELjjyzaA3hVbTTJMxZ9dRSm8y5sGFi4czMlZk1FjGDzA-wtQhRiVw2tzug_GC86u8k-TpvHoJxShQ&callback=mmUI.initializeMap";
 		document.body.appendChild(script);
 		return;
 	} else mmUI.loaded['mapapi'] = true;
 	
-	if( empty(lat) ) lat = mmUI.clat;
-	if( empty(lon) ) lon = mmUI.clon;
-	if( empty(zoom) ) zoom = 12;
+	if (empty(lat)) lat = mmUI.clat;
+	if (empty(lon)) lon = mmUI.clon;
+	if (empty(zoom)) zoom = 12;
 	
 	var latlng = null;
-	if( !empty(lat) ) latlng = new google.maps.LatLng(lat, lon);
+	if (!empty(lat)) latlng = new google.maps.LatLng(lat, lon);
 	
-	if(empty(mmUI.map))
-	{
+	// S1E: Local varibales defined on the global scope (without var). Check for same mistake elsewhere
+	if (empty(mmUI.map)) {
 		blueIcon = new google.maps.MarkerImage("http://www.google.com/intl/en_us/mapfiles/ms/micons/blue-dot.png");
 		//EX ##dr currentPositionIcon = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter_withshadow&chld=C|af8&ext=.png");
 		currentPositionIcon = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=C|af8&ext=.png");
@@ -3264,7 +3309,7 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 		var myOptions = {
 			'zoom': 14
 		}
-		if(!empty(latlng)) myOptions['center'] = latlng;
+		if (!empty(latlng)) myOptions['center'] = latlng;
 		myOptions['mapTypeId'] = google.maps.MapTypeId.HYBRID;
 		
 		mmUI.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
@@ -3284,7 +3329,7 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 		});
 		
 		var clatlng = latlng;
-		if( !empty(mmUI.geo) && !empty(mmUI.geo['lat']) ) {
+		if (!empty(mmUI.geo) && !empty(mmUI.geo['lat'])) {
 			clatlng = new google.maps.LatLng(mmUI.geo['lat'], mmUI.geo['lon']);
 		}
 		mmUI.currentpositionmarker = new google.maps.Marker({
@@ -3310,10 +3355,10 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 			//##
 			var ungrounded = '';
 			var aUngrounded = [];
-			for (var i in mmUI.locations ) {
-				if(!empty(highlight) && mmUI.locations[i].id==highlight) highlocation = mmUI.locations[i];
-				if( empty(mmUI.locations[i].lat) ) {
-					if( ungrounded!='') ungrounded += ', ';
+			for (var i in mmUI.locations) {
+				if (!empty(highlight) && mmUI.locations[i].id==highlight) highlocation = mmUI.locations[i];
+				if (empty(mmUI.locations[i].lat)) {
+					if (ungrounded!='') ungrounded += ', ';
 					ungrounded += ' '+mmUI.locations[i].name;
 					aUngrounded.push(mmUI.locations[i].name);
 				}
@@ -3348,10 +3393,10 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 			cont += '<input type="submit" value="Add location">';
 			cont += '</form><br/>';
 			
-			if( !empty(highlocation) ) {
+			if (!empty(highlocation)) {
 				cont = 'define this location<br/>name: <input name="name" id="currentmarkername" type="text" value="'+(empty(highlocation)?'':highlocation.name)+'"><br/>tags: <input name="tags" id="currentmarkertags" type="text"><br/><input type="button" onclick="mmUI.saveCurrentMarkerGeoLocationSelected(true); return false;" value="Save location"><br/>';
 				cont += '<input type="hidden" name="currentmarkerid" value="'+highlocation.id+'">';
-				//if( document.documentElement.clientHeight-400 < .offsetTop) ) 
+				//if (document.documentElement.clientHeight-400 < .offsetTop)) 
 						//{
 							//alert('scrolling');
 							//$('section#'+hr).scroll();
@@ -3359,9 +3404,9 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 				//$('#map_canvas').scrollTo();
 			}	
 			
-			//if( ungrounded!='' ) cont += 'ungrounded: '+ungrounded;
+			//if (ungrounded!='') cont += 'ungrounded: '+ungrounded;
 			mmUI.infowindow.close();
-			mmUI.infowindow.setContent( cont );
+			mmUI.infowindow.setContent(cont);
 			mmUI.infowindow.open(mmUI.map,mmUI.currentmarker);			
 			$("#currentmarkername").autocomplete({
 				minLength: 0,
@@ -3385,7 +3430,7 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 			//FIX THIS
 			var cont = '<i>Your current location</i><br/><br/>Define this location<br/><form action="javascript:return false;" onsubmit="return mmUI.saveCurrentMarkerGeoLocationCurrent(false); return false;">name: <input name="name" id="currentmarkername" type="text" value=""><br/>tags: <input name="tags" id="currentmarkertags" type="text"><br/><input type="submit" value="Add location"></form><br/>';
 			
-			mmUI.infowindow.setContent( cont );
+			mmUI.infowindow.setContent(cont);
 			mmUI.infowindow.open(mmUI.map,mmUI.currentpositionmarker);
 		});
 				
@@ -3396,64 +3441,64 @@ mmUI.updateMap = function(lat, lon, zoom, highlight)
 			google.maps.event.trigger(mmUI.currentmarker,'click');
 		});
 	} else {
-		if(!empty(mmUI.param.location) && !empty(mmUI.locations)) {
-			for ( it=0; it<mmUI.locations.length; it++ ) {
-				if( mmUI.locations[it].id == mmUI.param.location ) {
+		if (!empty(mmUI.param.location) && !empty(mmUI.locations)) {
+			for (it=0; it<mmUI.locations.length; it++) {
+				if (mmUI.locations[it].id == mmUI.param.location) {
 					var location = mmUI.locations[it];
-					if( !empty(location.lat) ) {
+					if (!empty(location.lat)) {
 						var cont = mmUI._getMarkerInfoHTML(location);
 						/*
-						mmUI.locations[it].infowindow.setContent( cont );
+						mmUI.locations[it].infowindow.setContent(cont);
 						mmUI.locations[it].infowindow.open(map,mmUI.locations[it].marker);
-						/*/
+						*/
 						mmUI.infowindow.close();
-						mmUI.infowindow.setContent( cont );
+						mmUI.infowindow.setContent(cont);
 						mmUI.infowindow.open(mmUI.map,location.marker);
-						if(mmUI.debug>0) console.log('map.setcenterloc',location.marker.getPosition());
+						if (mmUI.debug>0) console.log('map.setcenterloc',location.marker.getPosition());
 						mmUI.map.setCenter(location.marker.getPosition());
 						return;
 					}
 				}
 			}
 		}
-		if( empty(latlng) || isNaN(latlng.lat()) ) return;
-		if(mmUI.debug>0) console.log('map.setcenter',latlng);
-// 		window.scrollTo(0,$('#map_canvas').offsetTop-4);
+		if (empty(latlng) || isNaN(latlng.lat())) return;
+		if (mmUI.debug>0) console.log('map.setcenter',latlng);
+		//window.scrollTo(0,$('#map_canvas').offsetTop-4);
 		mmUI.map.setCenter(latlng);
 	}
 
-	/* if(mmUI.locations==null) mmUI.getGeo(highlight);//update locations after getting them... in another thread
+	/* if (mmUI.locations==null) mmUI.getGeo(highlight);//update locations after getting them... in another thread
 	else mmUI.updateLocations(highlight); */
 	mmUI.getGeo(highlight); //update locations after getting them... in another thread
 	mmUI.updateLocations(highlight);
 }
 
-mmUI.geoResolveAddress = function()
-{
-//	event.preventDefault();
-    mmUI.geocoder.geocode( { 'address': $('#geocode').val()}, function(results, status) {
-      if (status == google.maps.GeocoderStatus.OK) {
-        mmUI.map.setCenter(results[0].geometry.location);
-		mmUI.currentmarker.setPosition(results[0].geometry.location);
-		google.maps.event.trigger(mmUI.currentmarker,'click');
-		if(mmUI.mapDefinePoint == null) {
-			//$('#currentmarkername').val(results[0].formatted_address);
-			$('#currentmarkername').val('');
-//			$('#currentmarkername').focus();
+// geo helper, map view
+mmUI.geoResolveAddress = function() {
+	//event.preventDefault();
+	mmUI.geocoder.geocode({ 'address': $('#geocode').val()}, function(results, status) {
+		if (status == google.maps.GeocoderStatus.OK) {
+			mmUI.map.setCenter(results[0].geometry.location);
+			mmUI.currentmarker.setPosition(results[0].geometry.location);
+			google.maps.event.trigger(mmUI.currentmarker,'click');
+			if (mmUI.mapDefinePoint == null) {
+				//$('#currentmarkername').val(results[0].formatted_address);
+				$('#currentmarkername').val('');
+				//$('#currentmarkername').focus();
+			}
+			setTimeout("$('input#currentmarkername').trigger('focus')",100);
+			//mmUI.
+		} else {
+			//alert("Geocode was not successful for the following reason: " + status);
 		}
-		setTimeout("$('input#currentmarkername').trigger('focus')",100);
-		//mmUI.
-      } else {
-        //alert("Geocode was not successful for the following reason: " + status);
-        
-      }
 	});
 	return false;
 }
 
-function initializeMap() {
+// geo view helper
+mmUI.initializeMap = function() {
 	var param = mmUI.param;
-	if(mmUI.debug>0) console.log('initializing map');
+	if (mmUI.debug>0) console.log('initializing map');
 
 	var zoom = (empty(param.zoom) ? 10 : param.zoom);
 	
@@ -3461,7 +3506,7 @@ function initializeMap() {
 	//mmUI.updateMap(param.lat,param.lon,zoom,mmUI.mapDefinePoint);
 	
 	//##drazen: samo če param obstaja - v param se pošiljajo podatki za "future" ali "selected" location
-	if( empty(param.lat) ) {
+	if (empty(param.lat)) {
 		mmUI.getCurrentGeo();
 	} else {
 		mmUI.updateMap(param.lat,param.lon,zoom,mmUI.mapDefinePoint);
@@ -3471,12 +3516,13 @@ function initializeMap() {
 	$('#locationcontent').fadeIn('fast');//oyvey...
 	
 	//mmUI.updateMap();
-	//if( mmUI.loaded['geolocations'] != true ) mmUI.getGeo();
+	//if (mmUI.loaded['geolocations'] != true) mmUI.getGeo();
 }
 
-function setupUI()
-{
-	if(mmUI.isUserLoggedIn() && window.location.hash=='' )/** url is empty... what if its plain wrong? handle in } else { case lower */
+// S1E: Main 'router' function
+// app routing, view ui animation, geolocation - persistence - update request, calendar, view callbacks
+mmUI.setupUI = function () {
+	if (mmUI.isUserLoggedIn() && window.location.hash=='') // url is empty... what if its plain wrong? handle in } else { case lower
 	{
 		window.location = '#agenda/';
 		return;
@@ -3486,22 +3532,25 @@ function setupUI()
 	$('#content').fadeOut('fast');
 	$('#schedulecontent').fadeOut('fast');
 	$('#locationcontent').fadeOut('fast');
+	$('#meanxyContent').fadeOut('fast');
+	$('#chartsContent').fadeOut('fast');
+	$('#manurelContent').fadeOut('fast');
 	//$('#importcontent').fadeOut('fast');
 	$('#padcontent').fadeOut('fast');
 	$('#settingscontent').fadeOut('fast');
 	
-//	alert(window.location.hash);
+	//alert(window.location.hash);
 	mmUI.param = {};
 	var urlall = window.location.hash.split('?');
 	var url = window.location.hash;
-	if( empty(urlall[0]) ) {
+	if (empty(urlall[0])) {
 	} else {
 		url = urlall[0];
-		if(!empty(urlall[1])) {
+		if (!empty(urlall[1])) {
 			parall = urlall[1].split('#');
 			var paramhash = parall[1];
 			params = parall[0].split('&');
-			for( var i in params ) {
+			for(var i in params) {
 				var pr = params[i].split('=');
 				mmUI.param[pr[0]] = pr[1];
 			}
@@ -3509,20 +3558,20 @@ function setupUI()
 	}
 	var param = mmUI.param;
 
-	if(!empty(param['user']))  {
+	if (!empty(param['user']))  {
 		$('#form_username').val(param['user']);
-		if(!empty(param['pass'])) $('#form_password').val(param['pass']);
-		if(!empty(param['server'])) $('#server').val(param['server']);
+		if (!empty(param['pass'])) $('#form_password').val(param['pass']);
+		if (!empty(param['server'])) $('#server').val(param['server']);
 		setTimeout('$("#loginfrm").submit();',100);
 	}
 	
-	if( url == '#logout/' ) {
+	if (url == '#logout/') {
 		mmUI.logout();
 		return;
 	}
 
-	if(!mmUI.isUserLoggedIn()) {
-		if(url!='#login/') {
+	if (!mmUI.isUserLoggedIn()) {
+		if (url!='#login/') {
 			location.href = '#login/';
 			return;
 		}
@@ -3531,7 +3580,7 @@ function setupUI()
 		$('#navigation').hide();
 		$('#content').hide();
 		$('#loginform').fadeIn('fast');
-		if( document.domain!='peek.middlemachine.com' ) {
+		if (document.domain!='peek.middlemachine.com') {
 			$('#loginservers').fadeIn('fast');
 		} else {
 			mmUI.debug = 0;
@@ -3542,63 +3591,72 @@ function setupUI()
 		
 	} else {
 		var cstamp = new Date().getTime();
-		if(	mmUI.lastGeoUpdate == null || mmUI.lastGeoUpdate + 60 < cstamp )  {
+		if (	mmUI.lastGeoUpdate == null || mmUI.lastGeoUpdate + 60 < cstamp)  {
 
-		try {
-			if (!navigator.geolocation) { 
-				//alert('Get Firefox 3.5+ and enable geolocation sharing.'); 
-			} else {
-				
-				navigator.geolocation.getCurrentPosition(function(position) {
-					url = "<%=url%>&lat="+position.coords.latitude
-						+"&lon="+position.coords.longitude
-						+"&acc="+position.coords.accuracy
-						+"&hi="+position.coords.altitude
-						+"&hia="+position.coords.altitudeAccuracy
-						+"&hd="+position.coords.heading
-						+"&spd="+position.coords.speed
-						+"&t="+position.timestamp
-						;
-						
-					mmUI.geo = new Array();
-					mmUI.geo['lat'] = position.coords.latitude;
-					mmUI.geo['lon'] = position.coords.longitude;
-					mmUI.geo['acc'] = position.coords.accuracy;
-					mmUI.geo['hi'] = position.coords.altitude;
-					mmUI.geo['hia'] = position.coords.altitudeAccuracy;
-					mmUI.geo['hd'] = position.coords.heading;
-					mmUI.geo['spd'] = position.coords.speed;
-					mmUI.geo['t'] = position.coords.timestamp;
+			try {
+				if (!navigator.geolocation) { 
+					//alert('Get Firefox 3.5+ and enable geolocation sharing.'); 
+				} else {
+					
+					navigator.geolocation.getCurrentPosition(function(position) {
+						url = "<%=url%>&lat="+position.coords.latitude
+							+"&lon="+position.coords.longitude
+							+"&acc="+position.coords.accuracy
+							+"&hi="+position.coords.altitude
+							+"&hia="+position.coords.altitudeAccuracy
+							+"&hd="+position.coords.heading
+							+"&spd="+position.coords.speed
+							+"&t="+position.timestamp
+							;
+							
+						mmUI.geo = new Array();
+						mmUI.geo['lat'] = position.coords.latitude;
+						mmUI.geo['lon'] = position.coords.longitude;
+						mmUI.geo['acc'] = position.coords.accuracy;
+						mmUI.geo['hi'] = position.coords.altitude;
+						mmUI.geo['hia'] = position.coords.altitudeAccuracy;
+						mmUI.geo['hd'] = position.coords.heading;
+						mmUI.geo['spd'] = position.coords.speed;
+						mmUI.geo['t'] = position.coords.timestamp;
 
-					if( !empty(mmUI.currentpositionmarker) ) {
-						var clatlng = new google.maps.LatLng(mmUI.geo['lat'], mmUI.geo['lon']);
-						mmUI.currentpositionmarker.setPosition(clatlng);
-					}
-					//alert(url); //redirect
-					JSONPCall('geo','&set=&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon'],null,null,'saving:setting geo');
-					//$.getJSON(mmUI.apiurl+'/BTW/geo/'+mmUI.account+'?access_token='+mmUI.access_token+'&set=true&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon']+'&json_callback=?', function(dataall){	});
-				});
+						if (!empty(mmUI.currentpositionmarker)) {
+							var clatlng = new google.maps.LatLng(mmUI.geo['lat'], mmUI.geo['lon']);
+							mmUI.currentpositionmarker.setPosition(clatlng);
+						}
+						//alert(url); //redirect
+						JSONPCall('geo','&set=&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon'],null,null,'saving:setting geo');
+						//$.getJSON(mmUI.apiurl+'/BTW/geo/'+mmUI.account+'?access_token='+mmUI.access_token+'&set=true&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon']+'&json_callback=?', function(dataall) {	});
+					});
+				}
+			} catch (exception) {
+				// S1E: Handle exception
 			}
-		} catch (exception) {
-		}
-
 		}
 
 		$('#usersname').html(empty(mmUI.username) ? mmUI.account : mmUI.username);
 		
 		$('#navigation').fadeIn('fast');	
 
-		$('#primary >li').each(function(i,el){$(el).removeClass("selected")});
+		$('#primary >li').each(function(i,el) {$(el).removeClass("selected")});
 		
 		$('#appfooter').fadeIn('fast');
 		
-		if( url == '#schedule/' ) {
+		if (url == '#meanxy/') {
+			$('#meanxyLink').addClass("selected");
+			$('#meanxyContent').fadeIn("fast");			
+		} else if (url == '#charts/') {
+			$('#chartsLink').addClass("selected");
+			$('#chartsContent').fadeIn("fast");			
+		} else if (url == '#manurel/') {
+			$('#manurelLink').addClass("selected");
+			$('#manurelContent').fadeIn("fast");
+		} else if (url == '#schedule/') {
 			$('#schedulelink').addClass("selected");
 			$('#schedulecontent').fadeIn('fast');
-
+			
+			// S1E: Code wrapped in object. Perhaps a form of temporarilly disabling or "commenting out"?
 			//$(document).ready(function() 
 			{
-			
 				$('#calendar').fullCalendar({
 					defaultView:'agendaWeek',
 					theme:true,
@@ -3610,11 +3668,13 @@ function setupUI()
 					timeFormat:'HH:mm',
 					firstDay:1,
 							
-			/*		<%if(date!=null) {%>//start date from session (see above)
-						date:sdate.getDate(),
-						month:sdate.getMonth(),
-						year:sdate.getFullYear(),
-					<%}%>*/
+					/*
+						<%if (date!=null) {%>//start date from session (see above)
+							date:sdate.getDate(),
+							month:sdate.getMonth(),
+							year:sdate.getFullYear(),
+						<%}%>
+					*/
 					editable: true,
 					
 					events: "",
@@ -3628,46 +3688,39 @@ function setupUI()
 						if (bool) $('#loading').show();
 						else $('#loading').hide();
 					}
-					
 				});
-				
-			}
-			//});
-
-			
-		} else if( url == '#locations/' ) {
+			}			
+		} else if (url == '#locations/') {
 			$('#locationlink').addClass("selected");
 			
 			mmUI.mapDefinePoint = param.define;
-			if(typeof google === 'undefined') {
-				if( mmUI.mapLoadingRequested != null) return;
+			if (typeof google === 'undefined') {
+				if (mmUI.mapLoadingRequested != null) return;
 				mmUI.mapLoadingRequested = true;
 				var script = document.createElement("script");
 				script.type = "text/javascript";
-				script.src = "http://maps.google.com/maps/api/js?sensor=false&callback=initializeMap";
+				script.src = "http://maps.google.com/maps/api/js?sensor=false&callback=mmUI.initializeMap";
 				document.body.appendChild(script);
 				//return;
 			} else {
-				initializeMap();
-//*			
+				mmUI.initializeMap();
 			}
-/**/			
-		} else if( url == '#pad/' ) {
+		} else if (url == '#pad/') {
 			$('#padlink').addClass("selected");
 			$('#padcontent').fadeIn('fast');
 			mmUI.updatePad();
 		} 		
-		else if( url == '#settings/' ) {
+		else if (url == '#settings/') {
 			$('#settingscontent').fadeIn('fast');
 			
-			$('.settings-tabs-navi>li>a').click(function(e){
+			$('.settings-tabs-navi>li>a').click(function(e) {
 				e.preventDefault();
 				
 				var href = $(this).attr('href');
 				$('.settings-tab').hide();
 				$(href).show();
 				$('.settings-tabs-navi>li').removeClass('main-tabs-active');
-			    $(this).parent('li').addClass('main-tabs-active');
+					$(this).parent('li').addClass('main-tabs-active');
 				
 				if (href == "#account-settings")
 					mmUI.getAccountSettings();
@@ -3684,13 +3737,12 @@ function setupUI()
 			});
 			
 			$('.settings-tabs-navi>li>a[href=#account-settings]').click();
-		} else if( url == '#agenda/' ) {
+		} else if (url == '#agenda/') {
 			$('#agendalink').addClass("selected");
-	//*		
 			var search = null;
 			var entryid = null
 			//alert(param['search']);
-			if(!empty(param['search'])) search = param['search'];
+			if (!empty(param['search'])) search = param['search'];
 			
 			mmUI.updateEntries(entryid, null, search);
 			mmUI.updateAims();
@@ -3698,50 +3750,56 @@ function setupUI()
 			mmUI.updateNearLocs();
 			//TODO CHECK mmUI.updateCookie();
 			$('#content').fadeIn('fast');
-		//*	
-		/**/
-		//*
 		} else {
 			location.href='#agenda/';
 		}
-		if(empty(mmUI.allTags) ) {
+		if (empty(mmUI.allTags)) {
 			setTimeout('mmUI.setupAwesomeBar()',500);
 		}
 		//$('#appfooter').fadeIn('fast');
-	/**/	
 		//TODO upper (async) functions check if we are logged in, if we timedout dont run this
 		
-//*			
 		// input Placeholder
 		if (!isAtributeSupported('input','placeholder')) {
 			$('input').each(
-				function(){
-					if($(this).val()=='' && $(this).attr('placeholder')!=''){
-						$(this).focus(function(){if($(this).val()==$(this).attr('placeholder')) $(this).val('');});
-						$(this).blur(function(){if($(this).val()=='') $(this).val($(this).attr('placeholder'));});
+				function() {
+					if ($(this).val()=='' && $(this).attr('placeholder')!='') {
+						$(this).focus(function() {if ($(this).val()==$(this).attr('placeholder')) $(this).val('');});
+						$(this).blur(function() {if ($(this).val()=='') $(this).val($(this).attr('placeholder'));});
 						$(this).val($(this).attr('placeholder'));
 					}
 				}
 			);
 		}
-/**/
-
 	}
 	$('#uiver').html(mmUI.uiver);
 }
 
-$(document).ready(function(){
+// app init
+mmUI.onLoad = function(event) {
 	mmUI.loadCookie();
 	//alert(cookie);
+	
+	// S1E: This forwards auth and config data to all iframes, should be extracted
+	$(".embeddable iframe").each(function (index, iframe) {
+		if (mmUI.apiurl) {
+			var apiurl = mmUI.apiurl.substr(7, mmUI.apiurl.length)
+			var port = ""
+			if (apiurl.indexOf(":") != -1) {
+				port = apiurl.substr(apiurl.indexOf(":") + 1, apiurl.length)
+				apiurl = apiurl.substr(0, apiurl.indexOf(":"))
+			}
+			iframe.src = iframe.getAttribute("data-src") + "?access_token=" + mmUI.access_token + "&user=" + mmUI.account + "&server=" + escape(apiurl) + "&port=" + escape(port)
+		}
+	})
 
-//*
 	$.editableFactory = {
 		'text': {
-			toEditable: function($this,options){
+			toEditable: function($this,options) {
 				//$this.append('<input value="'+$this.data('editable.current')+'"/> <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-				$this.append('<input value="'+$this.data('editable.current')+'" class="editableinput" onclick="javascript:return false;"/>').bind('keydown',function(event){
+				$this.append('<input value="'+$this.data('editable.current')+'" class="editableinput" onclick="javascript:return false;"/>').bind('keydown', function(event) {
 					var keyCode = $.ui.keyCode;
-					switch( event.keyCode ) {
+					switch(event.keyCode) {
 					case keyCode.TAB:
 					case keyCode.ENTER:
 					case keyCode.NUMPAD_ENTER:
@@ -3752,20 +3810,20 @@ $(document).ready(function(){
 					default:
 					}
 				});
-//						return $this;
+				//return $this;
 			},
 
-			getValue: function($this,options){
+			getValue: function($this,options) {
 				return $this.children().val();
 			}
 		},
 		'location': {
 			
-			toEditable: function($this,options){
+			toEditable: function($this,options) {
 				//$this.append('<input value="'+$this.data('editable.current')+'"/> <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
-				$this.append('<input id="" value="'+$this.data('editable.current')+'" class="editableinput"/>').bind('keydown',function(event){
+				$this.append('<input id="" value="'+$this.data('editable.current')+'" class="editableinput"/>').bind('keydown', function(event) {
 					var keyCode = $.ui.keyCode;
-					switch( event.keyCode ) {
+					switch(event.keyCode) {
 					case keyCode.TAB:
 					case keyCode.ENTER:
 					case keyCode.NUMPAD_ENTER:
@@ -3789,74 +3847,72 @@ $(document).ready(function(){
 				$this.append('Enter location name or <a href="">find on map</a>');
 			},
 
-			getValue: function($this,options){
+			getValue: function($this,options) {
 				return $this.children().val();
 			}
 		},
 		'title': {
 			
-			toEditable: function($this,options){
+			toEditable: function($this,options) {
 				//$this.append('<input value="'+$this.data('editable.current')+'"/> <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
 				//$this.append('<input id=""value="'+$this.data('editable.current')+'" class="editableinput" />');
-				
-// 				$this.append('<input id="" value="'+$this.data('editable.current')+'" class="editableinputtitle" />')
-// 				$this.append('<textarea class="editableinputtitle">'+$this.data('editable.current')+'</textarea>')
+				//$this.append('<input id="" value="'+$this.data('editable.current')+'" class="editableinputtitle" />')
+				//$this.append('<textarea class="editableinputtitle">'+$this.data('editable.current')+'</textarea>')
 				$this.append('<textarea rows="7">'+$this.data('editable.current')+'</textarea>')
-				.bind('keydown',function(event){
+				.bind('keydown', function(event) {
 					var keyCode = $.ui.keyCode;
-					switch( event.keyCode ) {
-					case keyCode.TAB:
-					case keyCode.ENTER:
-					case keyCode.NUMPAD_ENTER:
-						//alert('ffs');
-						var t = $(this).data('editable.options');
-						t.toNonEditable($this,true);
-					default:
+					switch(event.keyCode) {
+						case keyCode.TAB:
+						case keyCode.ENTER:
+						case keyCode.NUMPAD_ENTER:
+							//alert('ffs');
+							var t = $(this).data('editable.options');
+							t.toNonEditable($this,true);
+						default:
 					}
-				//}).bind('click',function(event){
+					//}).bind('click', function(event) {
 					//var t = $(this).data('editable.options');
 					//t.toNonEditable($this,true);
 					//event.preventDefault();
 				});
-//onclick="javascript:$(this).parent().cancel();"
-// 				$this.children('input').autocomplete({
-// 					delay:0,
-// 					minLength:0,
-// 					source: mmUI.allTags['none']
-// 				});
+				//onclick="javascript:$(this).parent().cancel();"
+				// 				$this.children('input').autocomplete({
+				// 					delay:0,
+				// 					minlength:0,
+				// 					source: mmui.alltags['none']
+				// 				});
 
 				return $this;
 			},
-// 			onEdit: function() {
-// 				$this.append('Enter location name or <a href="">find on map</a>');
-// 			},
+				// 			onEdit: function() {
+				// 				$this.append('Enter location name or <a href="">find on map</a>');
+				// 			},
 
-			getValue: function($this,options){
+			getValue: function($this,options) {
 				return $this.find('textarea').val();
 			},
 			submitBy: 'blur',
 		},
 		'textarea': {
 			
-			toEditable: function($this,options){
+			toEditable: function($this,options) {
 				var str = new String($this.data('editable.current'));
 				var len = str.length;
 				var rows = 5;
-				if( len>300 ) rows = 10;
-				if( len>600 ) rows = 15;
-				if( len>1000 ) rows = 25;
-				if( len>1500 ) rows = 35;
+				if (len>300) rows = 10;
+				if (len>600) rows = 15;
+				if (len>1000) rows = 25;
+				if (len>1500) rows = 35;
 				//$this.append('<input value="'+$this.data('editable.current')+'"/> <p style="padding:2px;"><span onclick="" class="editableapply">APPLY</span> <span onclick="" class="editablecancel">CANCEL</span></p>');
 				$this.append('<textarea class="editableinput" onclick="javascript:return false;" rows="'+rows+'">'+$this.data('editable.current')+'</textarea>');
-//						return $this;
+				//return $this;
 			},
 
-			getValue: function($this,options){
+			getValue: function($this,options) {
 				return $this.children().val();
 			}
 		},
 	} 
-/**/
 	
 	//TODO mmUI.checkForUpdate();
 	$("article>img").lazyload({
@@ -3866,21 +3922,26 @@ $(document).ready(function(){
 	});
 
 	
-	window.onhashchange = function(){
-		//if( !empty(mmUI.access_token) )
-		setupUI();
+	window.onhashchange = function() {
+		//if (!empty(mmUI.access_token))
+		mmUI.setupUI();
 	}
 	
-/*	if(!empty(mmUI.apiurl) ) {
-		$.getJSON(mmUI.apiurl+'/BTW/appdata/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall){
+	/*
+	if (!empty(mmUI.apiurl)) {
+		$.getJSON(mmUI.apiurl+'/BTW/appdata/'+mmUI.account+'?access_token='+mmUI.access_token+'&json_callback=?', function(dataall) {
 			mmUI.setUIObject('appdata', dataall['workflow']);		
-			setupUI(); // SETUP UI
+			mmUI.setupUI(); // SETUP UI
 		});
-	} else */{
-		setupUI(); // SETUP UI
+	} else {
+		mmUI.setupUI(); // SETUP UI
 	}
+	*/
+	
+	mmUI.setupUI()
 
-	if(!empty(mmUI.apiurl) ) {
+	if (!empty(mmUI.apiurl)) {
+		// S1E: Geolocation code duplication. Extract to function
 		try {
 			if (!navigator.geolocation) { 
 				//alert('Get Firefox 3.5+ and enable geolocation sharing.'); 
@@ -3907,47 +3968,49 @@ $(document).ready(function(){
 					mmUI.geo['spd'] = position.coords.speed;
 					mmUI.geo['t'] = position.coords.timestamp;
 
-					if( !empty(mmUI.currentpositionmarker) ) {
+					if (!empty(mmUI.currentpositionmarker)) {
 						var clatlng = new google.maps.LatLng(mmUI.geo['lat'], mmUI.geo['lon']);
 						mmUI.currentpositionmarker.setPosition(clatlng);
 					}
 					//alert(url); //redirect
 					JSONPCall('geo','&set=&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon'],null,null,'saving:setting geo');
-					//$.getJSON(mmUI.apiurl+'/BTW/geo/'+mmUI.account+'?access_token='+mmUI.access_token+'&set=true&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon']+'&json_callback=?', function(dataall){	});
+					//$.getJSON(mmUI.apiurl+'/BTW/geo/'+mmUI.account+'?access_token='+mmUI.access_token+'&set=true&lat='+mmUI.geo['lat']+'&lon='+mmUI.geo['lon']+'&json_callback=?', function(dataall) {	});
 				});
 			}
 		} catch (exception) {
+			// S1E: Handle exception
 		}
 	}
 
-/**/
-//*
-	$('body').click(function(){
-		var menus = $('menu.respond:visible').each( function(i,m){
+	$('body').click(function() {
+		var menus = $('menu.respond:visible').each(function(i,m) {
 			$(this).fadeOut(20);
 			$(this).removeClass('locked');
 		});
 		enableDnD();
 	});
-/**/	
-	if(0){
-	$('body').mouseup(function(){
-		var menus = $('menu.respond:visible').each( function(i,m){
-		
-			//if ($(m).is(':visible')) 
-			{
-					/** TODO dont just handle the mouseup, the user has to be able to 
-							cancel by clicking somewhere else */
-					$(m).fadeOut(50);
-					//t.removeClass('locked');
-					/** tell server what happened */
-			}
+
+	// S1E: Code that never happens. Staged or obsolete?
+	if (0) {
+		$('body').mouseup(function() {
+			var menus = $('menu.respond:visible').each(function(i,m) {
+			
+				//if ($(m).is(':visible')) 
+				{
+						//TODO dont just handle the mouseup, the user has to be able to cancel by clicking somewhere else
+						$(m).fadeOut(50);
+						//t.removeClass('locked');
+						//tell server what happened
+				}
+			});
+			enableDnD();
 		});
-		enableDnD();
-	});
 	}
+	
 	//mmUI.debug=2;
-	//if( empty(mmUI.loaded['ui']) ) setupUI();
+	//if (empty(mmUI.loaded['ui'])) mmUI.setupUI();
 	mmUI.updateCurrentRequestInfo();
-});
+}
+
+$(document).ready(mmUI.onLoad)
 
