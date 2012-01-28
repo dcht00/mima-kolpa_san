@@ -1,0 +1,3 @@
+[submodule "meanxy"]
+	path = meanxy
+	url = git@github.com:Some1Else/MiMa-MeanXY

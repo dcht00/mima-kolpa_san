@@ -194,7 +194,7 @@ header li {
 }
 
 #primary {
-	float: right;
+	float: left;
 }
 
 #primary>li {
@@ -208,6 +208,7 @@ header li {
 	border: 1px solid #252b33;
 	padding: .8em .8em .7em 3em;
 	width: 14.25em; /*EX width: 20.35em; */
+	width: 7.125em;
 	font-size: 1.3em;
 	letter-spacing: .023em;
 	color: #eaf1f2;
@@ -2031,4 +2032,9 @@ textarea {
 	text-decoration: underline;
 	color: #6CA1D8;
 	cursor: pointer;
+}
+
+#meanxyContent iframe, #chartsContent iframe, #manurelContent iframe {
+  width: 999px;
+  height: 600px;
 }
