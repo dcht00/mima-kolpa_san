@@ -1517,7 +1517,7 @@ mmUI._constructEntries = function(dataall) {
 	}
 	
 	var dragin = false;
-	var t = setTimeout('',1);
+	var t = setTimeout('',1); // @michal --> what does the empty timeout do? 
 
 	$("#entryitemcount").html('Showing '+dataall.entries.meta.count_current+' / '+dataall.entries.meta.count_all+' items.');
 	
